@@ -1,0 +1,20 @@
+[
+  {
+    "name": "全聯福利中心",
+    "category": "超市",
+    "description": "台灣本土連鎖超市",
+    "website": "https://www.pxmart.com.tw"
+  },
+  {
+    "name": "家樂福",
+    "category": "量販店",
+    "description": "已轉為統一集團經營的本土量販店",
+    "website": "https://www.carrefour.com.tw"
+  },
+  {
+    "name": "誠品書店",
+    "category": "書店",
+    "description": "台灣文化地標書店品牌",
+    "website": "https://www.eslite.com"
+  }
+]

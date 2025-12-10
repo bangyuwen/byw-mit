@@ -1,0 +1,30 @@
+[
+  {
+    "name": "大同電鍋",
+    "brand": "大同",
+    "category": "家電",
+    "description": "台灣經典家電，耐用品質保證",
+    "website": "https://www.tatung.com.tw"
+  },
+  {
+    "name": "台灣啤酒",
+    "brand": "台灣菸酒",
+    "category": "飲料",
+    "description": "台灣本土品牌啤酒",
+    "website": "https://www.ttl.com.tw"
+  },
+  {
+    "name": "捷安特自行車",
+    "brand": "Giant",
+    "category": "運動",
+    "description": "世界知名的台灣自行車品牌",
+    "website": "https://www.giant-bicycles.com"
+  },
+  {
+    "name": "華碩筆電",
+    "brand": "ASUS",
+    "category": "電腦",
+    "description": "台灣之光，品質與創新兼具",
+    "website": "https://www.asus.com"
+  }
+]

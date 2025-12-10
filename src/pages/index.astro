@@ -1,0 +1,78 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const baseUrl = import.meta.env.BASE_URL;
+
+const categories = [
+  {
+    title: '台灣製造產品',
+    description: '優質的 Made in Taiwan 產品推薦',
+    link: `${baseUrl}products/`,
+    icon: '🏭'
+  },
+  {
+    title: '友善店家',
+    description: '支持台灣的店家與商店',
+    link: `${baseUrl}stores/`,
+    icon: '🏪'
+  },
+  {
+    title: '支持企業',
+    description: '表態支持台灣的公司與品牌',
+    link: `${baseUrl}companies/`,
+    icon: '🏢'
+  },
+  {
+    title: '創作者',
+    description: '支持台灣的 YouTuber 與內容創作者',
+    link: `${baseUrl}youtubers/`,
+    icon: '🎬'
+  }
+];
+---
+
+<Layout title="台灣支持名錄">
+  <section class="hero">
+    <h1>台灣支持名錄</h1>
+    <p class="intro">
+      收錄支持台灣的產品、店家、企業與創作者。<br>
+      用消費支持台灣，從這裡開始。
+    </p>
+  </section>
+
+  <div class="card-grid">
+    {categories.map((cat) => (
+      <a href={cat.link} class="card category-card">
+        <span class="icon">{cat.icon}</span>
+        <h2>{cat.title}</h2>
+        <p>{cat.description}</p>
+      </a>
+    ))}
+  </div>
+</Layout>
+
+<style>
+  .hero {
+    text-align: center;
+    padding: 2rem 0;
+  }
+
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .category-card {
+    text-decoration: none;
+    text-align: center;
+  }
+
+  .icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  .category-card h2 {
+    color: var(--primary);
+  }
+</style>

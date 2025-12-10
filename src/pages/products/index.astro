@@ -1,0 +1,28 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import type { Product } from '../../types';
+import productsData from '../../data/products.json';
+
+const products: Product[] = productsData;
+---
+
+<Layout title="台灣製造產品 - 台灣支持名錄">
+  <h1>台灣製造產品</h1>
+  <p class="intro">優質的 Made in Taiwan 產品，品質保證。</p>
+
+  {products.length > 0 ? (
+    <div class="card-grid">
+      {products.map((item) => (
+        <div class="card">
+          <h3>{item.name}</h3>
+          <span class="tag">{item.category}</span>
+          <p><strong>品牌：</strong>{item.brand}</p>
+          <p>{item.description}</p>
+          <p><a href={item.website} target="_blank" rel="noopener noreferrer">官方網站 →</a></p>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p class="empty">目前沒有資料，歡迎貢獻！</p>
+  )}
+</Layout>
