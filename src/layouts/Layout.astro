@@ -1,4 +1,6 @@
 ---
+import '../styles/global.css';
+
 interface Props {
   title: string;
 }
@@ -25,230 +27,142 @@ const baseUrl = import.meta.env.BASE_URL.endsWith('/')
     <title>{title}</title>
   </head>
   <body>
-    <header>
-      <nav>
-        <a href={baseUrl} class="logo">台灣支持名錄</a>
-        <ul>
-          <li><a href={`${baseUrl}products/`}>台灣製造</a></li>
-          <li><a href={`${baseUrl}stores/`}>友善店家</a></li>
-          <li><a href={`${baseUrl}singers/`}>歌手/樂團</a></li>
-          <li><a href={`${baseUrl}actors/`}>演員</a></li>
-          <li><a href={`${baseUrl}artists/`}>藝術家</a></li>
-          <li><a href={`${baseUrl}misc/`}>其他創作者</a></li>
-        </ul>
-      </nav>
+    <header class="site-header">
+      <div class="container header-container">
+        <a href={baseUrl} class="logo">
+          <span class="logo-icon">🇹🇼</span>
+          台灣支持名錄
+        </a>
+        <nav class="main-nav">
+          <ul>
+            <li><a href={`${baseUrl}products/`}>台灣製造</a></li>
+            <li><a href={`${baseUrl}stores/`}>友善店家</a></li>
+            <li><a href={`${baseUrl}singers/`}>歌手/樂團</a></li>
+            <li><a href={`${baseUrl}actors/`}>演員</a></li>
+            <li><a href={`${baseUrl}artists/`}>藝術家</a></li>
+            <li><a href={`${baseUrl}misc/`}>其他創作者</a></li>
+          </ul>
+        </nav>
+      </div>
     </header>
+
     <main>
-      <slot />
+      <div class="container">
+        <slot />
+      </div>
     </main>
-    <footer>
-      <p>台灣支持名錄 - 支持台灣，從消費開始</p>
+
+    <footer class="site-footer">
+      <div class="container footer-content">
+        <p>台灣支持名錄 &copy; {new Date().getFullYear()}</p>
+        <p class="subtitle">用消費支持台灣，從這裡開始。</p>
+      </div>
     </footer>
   </body>
 </html>
 
-<style is:global>
-  :root {
-    --primary: #1a365d;
-    --primary-light: #2c5282;
-    --accent: #c53030;
-    --bg: #f7fafc;
-    --bg-alt: #edf2f7;
-    --text: #1a202c;
-    --text-muted: #4a5568;
-    --card-bg: #ffffff;
-    --border: #e2e8f0;
-    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
-  }
-
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  html {
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.7;
-  }
-
-  body {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  header {
-    background: var(--primary);
-    color: white;
-    padding: 0;
-    box-shadow: var(--shadow-md);
+<style>
+  /* Header Styles */
+  .site-header {
+    background: rgba(249, 249, 247, 0.95); /* Matches bg-body with opacity */
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    height: var(--header-height);
     position: sticky;
     top: 0;
     z-index: 100;
   }
 
-  nav {
-    max-width: 1200px;
-    margin: 0 auto;
+  .header-container {
+    height: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-    padding: 1rem 2rem;
   }
 
   .logo {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: white;
-    text-decoration: none;
-    letter-spacing: -0.025em;
-  }
-
-  nav ul {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 700;
+    font-size: 1.5rem; /* Larger logo */
+    color: var(--primary);
     display: flex;
-    list-style: none;
+    align-items: center;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    letter-spacing: -0.02em;
   }
 
-  nav a {
-    color: rgba(255,255,255,0.9);
-    text-decoration: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    transition: all 0.2s ease;
+  .logo-icon {
+    font-size: 1.25rem;
+  }
+
+  .main-nav ul {
+    display: flex;
+    gap: 1.5rem; /* More spacing */
+    list-style: none;
+  }
+
+  .main-nav a {
+    color: var(--text-muted);
     font-size: 0.95rem;
     font-weight: 500;
+    padding: 0.25rem 0;
+    border-bottom: 2px solid transparent; /* Underline effect */
+    border-radius: 0;
   }
 
-  nav ul a:hover {
-    background: rgba(255,255,255,0.15);
-    color: white;
+  .main-nav a:hover {
+    color: var(--primary);
+    background: transparent;
+    border-bottom-color: var(--secondary); /* Accent color underline */
   }
 
+  /* Main Content */
   main {
     flex: 1;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2.5rem 2rem;
-    width: 100%;
+    padding: 4rem 0;
   }
 
-  footer {
-    background: var(--primary);
-    color: rgba(255,255,255,0.8);
-    text-align: center;
-    padding: 2rem;
+  /* Footer Styles */
+  .site-footer {
+    background: #234E34; /* Dark Green Footer */
+    color: #F9F9F7;
+    padding: 3rem 0;
     margin-top: auto;
-    font-size: 0.9rem;
   }
 
-  h1 {
-    font-size: 1.875rem;
-    margin-bottom: 0.5rem;
-    color: var(--text);
-    font-weight: 700;
-    letter-spacing: -0.025em;
-  }
-
-  h2 {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-  }
-
-  .card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.25rem;
-    margin-top: 1.5rem;
-  }
-
-  .card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1.5rem;
-    transition: all 0.2s ease;
-    box-shadow: var(--shadow);
-  }
-
-  .card:hover {
-    box-shadow: var(--shadow-md);
-    border-color: #cbd5e0;
-  }
-
-  .card h3 {
-    color: var(--primary);
-    margin-bottom: 0.75rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-  }
-
-  .card p {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    line-height: 1.6;
-  }
-
-  .card a {
-    color: var(--primary-light);
-    text-decoration: none;
-    font-weight: 500;
-  }
-
-  .card a:hover {
-    color: var(--primary);
-    text-decoration: underline;
-  }
-
-  .tag {
-    display: inline-block;
-    background: var(--bg-alt);
-    color: var(--primary);
-    padding: 0.25rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    margin: 0.25rem 0.25rem 0.25rem 0;
-    border: 1px solid var(--border);
-  }
-
-  .intro {
-    font-size: 1.05rem;
-    color: var(--text-muted);
-    margin-bottom: 1.5rem;
-  }
-
-  .empty {
+  .footer-content {
     text-align: center;
-    color: var(--text-muted);
-    padding: 3rem;
-    background: var(--card-bg);
-    border: 1px dashed var(--border);
-    border-radius: 10px;
-    margin-top: 1.5rem;
+    opacity: 0.9;
   }
 
-  @media (max-width: 600px) {
-    nav {
-      padding: 1rem;
-    }
-    nav {
+  .footer-content p {
+    color: #e2e8f0; /* Light text for dark bg */
+  }
+
+  .footer-content .subtitle {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    opacity: 0.7;
+    font-family: 'Noto Serif TC', serif;
+    font-style: italic;
+  }
+
+  @media (max-width: 768px) {
+    .header-container {
       flex-direction: column;
-      text-align: center;
+      height: auto;
+      padding: 1rem;
+      gap: 1rem;
     }
-    main {
-      padding: 1.5rem 1rem;
+
+    .site-header {
+      height: auto;
     }
-    h1 {
-      font-size: 1.5rem;
+
+    .main-nav ul {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem;
     }
   }
 </style>

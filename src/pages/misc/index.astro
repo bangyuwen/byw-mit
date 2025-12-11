@@ -7,25 +7,39 @@ const creators: MiscCreator[] = miscData;
 ---
 
 <Layout title="其他創作者 - 台灣支持名錄">
-  <h1>其他創作者</h1>
-  <p class="intro">支持台灣的 YouTuber、Podcaster 與其他內容創作者，共 {creators.length} 位。</p>
+  <div class="page-header">
+    <h1>其他創作者</h1>
+    <p class="intro">支持台灣的 YouTuber、Podcaster 與其他內容創作者，共 {creators.length} 位。</p>
+  </div>
 
   {creators.length > 0 ? (
     <div class="card-grid">
       {creators.map((item) => (
-        <div class="card">
-          {item.name && <h3>{item.name}</h3>}
+        <div class="card misc-card">
+          <div class="card-header">
+            {item.name && <h3>{item.name}</h3>}
+          </div>
+          
+          <div class="card-body">
+            {item.notes && (
+              <div class="notes-container">
+                {item.notes.startsWith('http') ? (
+                   <a href={item.notes} target="_blank" rel="noopener noreferrer" class="link-btn">
+                    更多資訊 ↗
+                  </a>
+                ) : (
+                  <p class="notes">{item.notes}</p>
+                )}
+              </div>
+            )}
+          </div>
+
           {item.website && (
-            <p><a href={item.website} target="_blank" rel="noopener noreferrer">查看頻道/連結 →</a></p>
-          )}
-          {item.notes && (
-            <p class="notes">
-              {item.notes.startsWith('http') ? (
-                <a href={item.notes} target="_blank" rel="noopener noreferrer">更多資訊 →</a>
-              ) : (
-                item.notes
-              )}
-            </p>
+            <div class="card-footer">
+              <a href={item.website} target="_blank" rel="noopener noreferrer" class="visit-btn">
+                查看頻道/連結 ↗
+              </a>
+            </div>
           )}
         </div>
       ))}
@@ -36,9 +50,99 @@ const creators: MiscCreator[] = miscData;
 </Layout>
 
 <style>
-  .notes {
-    font-size: 0.85rem;
+  .page-header {
+    text-align: center;
+    margin-bottom: 4rem;
+  }
+
+  .intro {
+    font-size: 1.1rem;
     color: var(--text-muted);
-    margin: 0.25rem 0;
+    margin-top: 1rem;
+    font-family: 'Noto Serif TC', serif;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
+  }
+
+  .misc-card {
+    background: var(--bg-surface);
+    border: none;
+    border-radius: var(--radius);
+    padding: 2rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .misc-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+  }
+
+  .card-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .misc-card h3 {
+    font-size: 1.25rem;
+    color: var(--primary);
+  }
+
+  .card-body {
+    flex: 1;
+    margin-bottom: 2rem;
+  }
+
+  .notes {
+    font-size: 1rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-family: 'Noto Serif TC', serif;
+    font-style: italic;
+  }
+
+  .notes-container {
+    margin-bottom: 0.5rem;
+  }
+
+  .card-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .visit-btn {
+    color: var(--secondary);
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .visit-btn:hover {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+
+  .link-btn {
+    display: inline-block;
+    color: var(--text-muted);
+    text-decoration: underline;
+    font-size: 0.9rem;
+  }
+  
+  .link-btn:hover {
+    color: var(--secondary);
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 3rem;
   }
 </style>

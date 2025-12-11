@@ -8,83 +8,173 @@ const categories = [
     title: '台灣製造產品',
     description: '優質的 Made in Taiwan 產品推薦',
     link: `${baseUrl}products/`,
-    icon: '🏭'
+    icon: '🏭',
   },
   {
     title: '友善店家',
     description: '支持台灣的店家與商店',
     link: `${baseUrl}stores/`,
-    icon: '🏪'
+    icon: '🏪',
   },
   {
     title: '歌手/樂團',
     description: '支持台灣的歌手與樂團',
     link: `${baseUrl}singers/`,
-    icon: '🎤'
+    icon: '🎤',
   },
   {
     title: '演員',
     description: '支持台灣的演員',
     link: `${baseUrl}actors/`,
-    icon: '🎭'
+    icon: '🎭',
   },
   {
     title: '藝術家',
     description: '支持台灣的藝術家',
     link: `${baseUrl}artists/`,
-    icon: '🎨'
+    icon: '🎨',
   },
   {
     title: '其他創作者',
     description: 'YouTuber、Podcaster 等內容創作者',
     link: `${baseUrl}misc/`,
-    icon: '🎬'
+    icon: '🎬',
   }
 ];
 ---
 
 <Layout title="台灣支持名錄">
-  <section class="hero">
-    <h1>台灣支持名錄</h1>
-    <p class="intro">
-      收錄支持台灣的產品、店家、企業與創作者。<br>
-      用消費支持台灣，從這裡開始。
-    </p>
+  <section class="hero-section">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        台灣支持名錄
+      </h1>
+      <p class="hero-subtitle">
+        收錄支持台灣的產品、店家、企業與創作者。<br>
+        用消費支持台灣，從這裡開始。
+      </p>
+    </div>
   </section>
 
-  <div class="card-grid">
-    {categories.map((cat) => (
-      <a href={cat.link} class="card category-card">
-        <span class="icon">{cat.icon}</span>
-        <h2>{cat.title}</h2>
-        <p>{cat.description}</p>
-      </a>
-    ))}
-  </div>
+  <section class="categories-section">
+    <div class="card-grid">
+      {categories.map((cat) => (
+        <a href={cat.link} class="category-card">
+          <div class="card-content">
+            <span class="icon-wrapper">{cat.icon}</span>
+            <h2 class="card-title">{cat.title}</h2>
+            <p class="card-description">{cat.description}</p>
+          </div>
+          <div class="card-action">
+            瀏覽列表
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
 </Layout>
 
 <style>
-  .hero {
+  /* Hero Section */
+  .hero-section {
     text-align: center;
-    padding: 2rem 0;
+    padding: 6rem 0;
+    position: relative;
+    /* Clean, organic background instead of gradient */
+    background-image: radial-gradient(#234E34 0.5px, transparent 0.5px);
+    background-size: 24px 24px;
+    opacity: 0.8;
   }
 
-  .hero h1 {
-    font-size: 2.5rem;
+  .hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+    color: var(--primary);
   }
 
+  .hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.8;
+    font-family: 'Noto Serif TC', serif;
+  }
+
+  /* Grid Layout */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2.5rem; /* Larger gap for airier feel */
+  }
+
+  /* Category Card */
   .category-card {
-    text-decoration: none;
+    background: var(--bg-surface);
+    border: none; /* Removed border */
+    /* border-top: 4px solid var(--primary); Accent top border */
+    border-radius: var(--radius);
+    padding: 2.5rem 2rem;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    box-shadow: var(--shadow); /* Soft, diffuse shadow */
+    position: relative;
     text-align: center;
   }
 
-  .icon {
-    font-size: 3rem;
+  .category-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .icon-wrapper {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
     display: block;
+  }
+
+  .card-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
     margin-bottom: 1rem;
   }
 
-  .category-card h2 {
-    color: var(--primary);
+  .card-description {
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+  }
+
+  .card-action {
+    color: var(--secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+  }
+
+  .category-card:hover .card-action {
+    opacity: 1;
+    letter-spacing: 0.1em; /* Subtle expansion */
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2.5rem;
+    }
+    
+    .card-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
