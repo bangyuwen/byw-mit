@@ -1,180 +1,415 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import productsData from '../data/products.json';
+import singersData from '../data/singers.json';
+import miscData from '../data/misc.json';
+import actorsData from '../data/actors.json';
+import artistsData from '../data/artists.json';
+import storesData from '../data/stores.json';
 
-const baseUrl = import.meta.env.BASE_URL;
+// Types
+interface Product {
+  category: string;
+  item: string;
+  brand: string;
+  website?: string;
+  is_recommender?: boolean;
+  name: string;
+  reason?: string;
+}
 
-const categories = [
-  {
-    title: '台灣製造產品',
-    description: '優質的 Made in Taiwan 產品推薦',
-    link: `${baseUrl}products/`,
-    icon: '🏭',
-  },
-  {
-    title: '友善店家',
-    description: '支持台灣的店家與商店',
-    link: `${baseUrl}stores/`,
-    icon: '🏪',
-  },
-  {
-    title: '歌手/樂團',
-    description: '支持台灣的歌手與樂團',
-    link: `${baseUrl}singers/`,
-    icon: '🎤',
-  },
-  {
-    title: '演員',
-    description: '支持台灣的演員',
-    link: `${baseUrl}actors/`,
-    icon: '🎭',
-  },
-  {
-    title: '藝術家',
-    description: '支持台灣的藝術家',
-    link: `${baseUrl}artists/`,
-    icon: '🎨',
-  },
-  {
-    title: '其他創作者',
-    description: 'YouTuber、Podcaster 等內容創作者',
-    link: `${baseUrl}misc/`,
-    icon: '🎬',
-  }
-];
+interface Singer {
+    name: string;
+    notes?: string;
+}
+
+interface MiscItem {
+    website: string;
+    notes?: string;
+}
+
+interface GenericItem {
+    name: string;
+    notes?: string;
+}
+
+// Category Mapping
+const categoryMap: Record<string, string[]> = {
+    'Tech': ['3C', '家電', '汽機車'],
+    'Taste': ['食品/保健'],
+    'Lifestyle': ['生活日用', '文具/手作', '傢俱寢飾', '寵物', '美妝個清', '衛浴'],
+    'Industry': ['運動/戶外', '服飾時尚']
+};
+
+// Filter Curator Recommendations
+const recommendations = (productsData as Product[]).filter(p => p.is_recommender);
+// Randomly select 3 recommendations
+const selectedRecommendations = recommendations.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+// Helper to get image for category (Placeholders as we don't have real product images)
+function getCategoryImage(category: string): string {
+    const map: Record<string, string> = {
+        '3C': 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070', // Tech
+        '家電': 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=2070', // Home Appliance
+        '汽機車': 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2070', // Car
+        '食品/保健': 'https://images.unsplash.com/photo-1626804475297-411d863b67ab?q=80&w=2670', // Food
+        '生活日用': 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?q=80&w=2070', // Daily
+        '文具/手作': 'https://images.unsplash.com/photo-1456735190827-d1262f71b8a6?q=80&w=2068', // Stationery
+        '傢俱寢飾': 'https://images.unsplash.com/photo-1540574163026-643ea20ade25?q=80&w=2070', // Furniture
+        '寵物': 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?q=80&w=2086', // Pet
+        '美妝個清': 'https://images.unsplash.com/photo-1596462502278-27bfdd403348?q=80&w=2574', // Beauty
+        '衛浴': 'https://images.unsplash.com/photo-1584622050111-993a426fbf0a?q=80&w=2070', // Bath
+        '運動/戶外': 'https://images.unsplash.com/photo-1551632811-561732d1e306?q=80&w=2670', // Outdoor
+        '服飾時尚': 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070', // Fashion
+    };
+    return map[category] || 'https://images.unsplash.com/photo-1532453288672-3a27e9be9efd?q=80&w=2564'; // Default
+}
+
+// Helper to get broader category image (for Bento Grid)
+function getGridImage(type: string): string {
+    const map: Record<string, string> = {
+        'Tech': 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070&auto=format&fit=crop',
+        'Taste': 'https://images.unsplash.com/photo-1594498653385-d517564e0856?q=80&w=2574&auto=format&fit=crop',
+        'Lifestyle': 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?q=80&w=2070&auto=format&fit=crop',
+        'Industry': 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?q=80&w=2070&auto=format&fit=crop'
+    };
+    return map[type] || '';
+}
+
+// Recommender Avatar Map (Random for now as we don't have real data)
+
+
 ---
 
-<Layout title="台灣支持名錄">
-  <section class="hero-section">
-    <div class="hero-content">
-      <h1 class="hero-title">
-        台灣支持名錄
-      </h1>
-      <p class="hero-subtitle">
-        收錄支持台灣的產品、店家、企業與創作者。<br>
-        用消費支持台灣，從這裡開始。
-      </p>
-    </div>
-  </section>
+<Layout title="Formosa Selects | 台灣工藝嚴選">
+    <!-- Hero Section -->
+    <header class="relative h-screen flex items-center justify-center hero-bg text-white">
+        <div class="text-center px-6 max-w-4xl z-10 fade-in">
+            <p class="text-lg md:text-xl font-light tracking-[0.3em] mb-4 uppercase">Small Island, Great Craftsmanship</p>
+            <h1 class="text-5xl md:text-7xl font-serif font-bold mb-8 leading-tight">
+                源自島嶼的<br>極致工藝
+            </h1>
+            <p class="text-base md:text-lg text-gray-200 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
+                從精密晶片到手作陶藝，我們為您匯集台灣最具代表性的創新與設計。<br>探索科技與人文交織的 MIT 嚴選好物。
+            </p>
+            <div class="flex flex-col md:flex-row gap-4 justify-center">
+                <a href="#products" class="bg-white text-brand-green px-8 py-4 rounded-sm font-medium hover:bg-gray-100 transition shadow-lg tracking-widest">
+                    探索產品 (Shop)
+                </a>
 
-  <section class="categories-section">
-    <div class="card-grid">
-      {categories.map((cat) => (
-        <a href={cat.link} class="category-card">
-          <div class="card-content">
-            <span class="icon-wrapper">{cat.icon}</span>
-            <h2 class="card-title">{cat.title}</h2>
-            <p class="card-description">{cat.description}</p>
-          </div>
-          <div class="card-action">
-            瀏覽列表
-          </div>
-        </a>
-      ))}
+            </div>
+        </div>
+        
+        <!-- Scroll Down Indicator -->
+        <div class="absolute bottom-10 animate-bounce">
+            <i class="fa-solid fa-chevron-down text-2xl opacity-70"></i>
+        </div>
+    </header>
+
+    <!-- Trust Bar -->
+    <div class="bg-white py-8 border-b border-gray-100">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-wrap justify-center md:justify-between items-center gap-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                <div class="flex items-center gap-2"><i class="fa-regular fa-face-smile text-2xl"></i> <span class="font-bold">MIT 微笑標章</span></div>
+                <div class="flex items-center gap-2"><i class="fa-solid fa-award text-2xl"></i> <span class="font-bold">iF Design Award</span></div>
+                <div class="flex items-center gap-2"><i class="fa-solid fa-star text-2xl"></i> <span class="font-bold">Golden Pin Design</span></div>
+                <div class="flex items-center gap-2"><i class="fa-solid fa-leaf text-2xl"></i> <span class="font-bold">Green Factory</span></div>
+                <div class="flex items-center gap-2"><i class="fa-solid fa-check-double text-2xl"></i> <span class="font-bold">SGS Certified</span></div>
+            </div>
+        </div>
     </div>
-  </section>
+
+    <!-- Featured Categories (Bento Grid) -->
+    <section id="products" class="py-20 container mx-auto px-6">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-serif font-bold text-brand-dark mb-4">探索類別</h2>
+            <div class="w-16 h-1 bg-brand-green mx-auto"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 h-auto md:h-[600px]">
+            <!-- Tech (Large Left) -->
+            <div class="group relative md:col-span-2 md:row-span-2 overflow-hidden rounded-sm cursor-pointer">
+                <img src={getGridImage('Tech')} alt="Technology" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-8">
+                    <h3 class="text-2xl text-white font-bold mb-1">科技創新 Tech & Innovation</h3>
+                    <p class="text-gray-300 text-sm opacity-0 group-hover:opacity-100 transition translate-y-4 group-hover:translate-y-0 duration-300">半導體、智慧家電、綠能科技</p>
+                </div>
+            </div>
+
+            <!-- Taste (Top Right) -->
+            <div class="group relative md:col-span-2 overflow-hidden rounded-sm cursor-pointer">
+                <img src={getGridImage('Taste')} alt="Taste" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                <div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition flex items-center justify-center">
+                    <h3 class="text-2xl text-white font-bold tracking-wider border-2 border-white px-6 py-2">風味台灣 TASTE</h3>
+                </div>
+            </div>
+
+            <!-- Lifestyle (Bottom Left) -->
+            <div class="group relative overflow-hidden rounded-sm cursor-pointer">
+                <img src={getGridImage('Lifestyle')} alt="Lifestyle" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                <div class="absolute bottom-0 left-0 w-full p-4 bg-white/90 translate-y-full group-hover:translate-y-0 transition duration-300">
+                    <h3 class="text-brand-dark font-bold">生活美學 Lifestyle</h3>
+                </div>
+            </div>
+
+            <!-- Industry (Bottom Right) -->
+            <div class="group relative overflow-hidden rounded-sm cursor-pointer">
+                <img src={getGridImage('Industry')} alt="Industry" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                <div class="absolute bottom-0 left-0 w-full p-4 bg-brand-dark/90 translate-y-full group-hover:translate-y-0 transition duration-300">
+                    <h3 class="text-white font-bold">精密工藝 Industry</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Curator's Choice Section -->
+    <!-- Curator's Choice Section (Text Only) -->
+    <section id="curators" class="py-24 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-20">
+                <div>
+                    <h2 class="text-4xl md:text-5xl font-serif font-bold text-brand-dark tracking-tight">
+                        Selection
+                        <span class="block text-lg font-sans font-light text-gray-400 mt-2 tracking-widest uppercase">Curator's Choice</span>
+                    </h2>
+                </div>
+                <!-- <a href="#" class="hidden md:inline-block text-xs font-mono text-gray-400 uppercase tracking-widest hover:text-brand-dark transition">View All Recommends <i class="fa-solid fa-arrow-right ml-1"></i></a> -->
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 border-t border-black/10">
+                {selectedRecommendations.map((product, index) => (
+                <div class="pt-8 group">
+                    <div class="mb-6">
+                        <span class="inline-block px-2 py-1 border border-gray-200 text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-4">{product.category}</span>
+                        <h3 class="text-2xl font-serif font-bold text-brand-dark leading-snug mb-2 group-hover:text-brand-green transition duration-300">
+                            "{product.reason ? product.reason : '這項產品展現了台灣精湛的製造工藝，是我日常生活中的必備好物。'}"
+                        </h3>
+                    </div>
+                    
+                    <div class="flex items-center justify-between border-t border-gray-100 pt-4">
+                        <div>
+                            <h4 class="font-bold text-sm text-brand-dark uppercase tracking-wide">{product.name}</h4>
+                            <p class="text-xs text-gray-400 font-mono mt-1">BY {product.brand}</p>
+                        </div>
+                        {product.website && (
+                            <a href={product.website} target="_blank" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-brand-green hover:text-white transition group-hover:translate-x-1 duration-300">
+                                <i class="fa-solid fa-arrow-right -rotate-45 text-xs"></i>
+                            </a>
+                        )}
+                    </div>
+                </div>
+                ))}
+            </div>
+        </div>
+    </section>
+
+
+
+    <!-- More Selections (Data Driven - Text Only Design) -->
+    <section id="more-selections" class="py-24 bg-white border-t border-black/10">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-start mb-20">
+                <h2 class="text-4xl md:text-5xl font-serif font-bold text-brand-dark tracking-tight">
+                    Discovery
+                    <span class="block text-lg font-sans font-light text-gray-400 mt-2 tracking-widest uppercase">Other Selections</span>
+                </h2>
+                <div class="hidden md:block text-right">
+                    <p class="text-xs font-mono text-gray-400 uppercase tracking-widest">Data Source</p>
+                    <p class="text-sm font-medium text-brand-dark">Community & Curators</p>
+                </div>
+            </div>
+
+            <div class="space-y-24">
+                <!-- Singers -->
+                {singersData.length > 0 && (
+                    <div>
+                        <div class="border-b-2 border-brand-dark pb-4 mb-8 flex justify-between items-end">
+                            <h3 class="text-2xl font-serif font-bold text-brand-dark">Musicians</h3>
+                            <span class="text-xs font-mono text-gray-400 uppercase">{singersData.length} Items</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-12">
+                            {singersData.map((singer: Singer, index) => (
+                                <div class="group">
+                                    <div class="flex items-baseline gap-4 mb-2">
+                                        <span class="text-xs font-mono text-gray-300">{(index + 1).toString().padStart(2, '0')}</span>
+                                        <h4 class="text-xl font-bold text-gray-900 group-hover:text-brand-green transition duration-300">{singer.name}</h4>
+                                    </div>
+                                    {singer.notes && singer.notes !== 'X' && singer.notes !== 'Ｘ' && (
+                                        <div class="pl-8">
+                                            {singer.notes.startsWith('http') ? (
+                                                <a href={singer.notes} target="_blank" class="inline-flex items-center gap-2 text-xs font-bold text-brand-dark hover:text-brand-green uppercase tracking-wider border-b border-gray-200 hover:border-brand-green pb-0.5 transition">
+                                                    Source Link <i class="fa-solid fa-arrow-right -rotate-45"></i>
+                                                </a>
+                                            ) : (
+                                                <p class="text-sm text-gray-500 font-light leading-relaxed border-l mb-1 pl-3 border-gray-200">{singer.notes}</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                 <!-- Misc -->
+                 {miscData.length > 0 && (
+                    <div>
+                         <div class="border-b-2 border-brand-dark pb-4 mb-8 flex justify-between items-end">
+                            <h3 class="text-2xl font-serif font-bold text-brand-dark">Miscellaneous</h3>
+                             <span class="text-xs font-mono text-gray-400 uppercase">{miscData.length} Items</span>
+                        </div>
+
+                        <div class="w-full">
+                            <div class="hidden md:grid grid-cols-12 text-xs font-mono text-gray-400 uppercase tracking-widest pb-4 border-b border-gray-100">
+                                <div class="col-span-1">No.</div>
+                                <div class="col-span-5">Source / Link</div>
+                                <div class="col-span-6">Note</div>
+                            </div>
+                            
+                            {miscData.map((item: MiscItem, index) => (
+                                <div class="grid grid-cols-1 md:grid-cols-12 py-6 border-b border-gray-100 items-start hover:bg-gray-50 transition -mx-4 px-4 md:mx-0 md:px-0">
+                                     <div class="col-span-1 text-xs font-mono text-gray-300 mb-2 md:mb-0">{(index + 1).toString().padStart(2, '0')}</div>
+                                     <div class="col-span-5 mb-2 md:mb-0 pr-4">
+                                        <a href={item.website} target="_blank" class="text-brand-dark font-medium hover:text-brand-green transition truncate block font-serif text-lg">
+                                            {item.website.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]} 
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-1 opacity-50 align-top"></i>
+                                        </a>
+                                        <p class="text-xs text-gray-400 truncate font-mono mt-1">{item.website}</p>
+                                     </div>
+                                     <div class="col-span-6">
+                                        {item.notes && <p class="text-sm text-gray-600 leading-relaxed">{item.notes}</p>}
+                                     </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                 )}
+
+                <!-- Future Categories (Hidden if empty) -->
+                {/* Actors */}
+                {actorsData.length > 0 && (
+                    <div class="pt-10 border-t border-gray-100"> 
+                        <h3 class="text-xl font-serif font-bold text-gray-400 mb-4">Actors</h3>
+                        <div class="flex flex-wrap gap-4">
+                             {actorsData.map((item: GenericItem) => <span class="px-4 py-2 border border-gray-200 text-gray-600 rounded-full text-sm">{item.name}</span>)}
+                        </div>
+                    </div>
+                )}
+                 {/* Artists */}
+                 {artistsData.length > 0 && (
+                     <div class="pt-10 border-t border-gray-100">
+                        <h3 class="text-xl font-serif font-bold text-gray-400 mb-4">Artists</h3>
+                         <div class="flex flex-wrap gap-4">
+                             {artistsData.map((item: GenericItem) => <span class="px-4 py-2 border border-gray-200 text-gray-600 rounded-full text-sm">{item.name}</span>)}
+                        </div>
+                    </div>
+                )}
+                 {/* Stores */}
+                 {storesData.length > 0 && (
+                     <div class="pt-10 border-t border-gray-100">
+                        <h3 class="text-xl font-serif font-bold text-gray-400 mb-4">Stores</h3>
+                         <div class="flex flex-wrap gap-4">
+                             {storesData.map((item: GenericItem) => <span class="px-4 py-2 border border-gray-200 text-gray-600 rounded-full text-sm">{item.name}</span>)}
+                        </div>
+                    </div>
+                )}
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Map Section -->
+    <section class="py-20 bg-brand-dark text-white overflow-hidden relative">
+        <!-- Background Pattern -->
+        <div class="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
+            <i class="fa-solid fa-microchip text-[20rem] absolute -top-20 -right-20 transform rotate-12"></i>
+        </div>
+
+        <div class="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between">
+            <!-- Text Content -->
+            <div class="w-full md:w-1/3 mb-10 md:mb-0 z-10">
+                <h2 class="text-3xl font-serif font-bold mb-2 text-brand-sand">Origin Map</h2>
+                <h3 class="text-xl text-gray-400 mb-8">台灣產業聚落導覽</h3>
+                
+                <div id="location-info" class="bg-white/10 backdrop-blur-md p-6 rounded-sm border-l-4 border-brand-green fade-in">
+                    <h4 id="loc-title" class="text-2xl font-bold mb-2">台北 Taipei</h4>
+                    <p id="loc-desc" class="text-gray-300 leading-relaxed text-sm">
+                        台灣的科技與創意中心。匯聚了軟體園區、創新設計中心以及各大國際展覽。這裡是「設計」與「創新」的起點。
+                    </p>
+                    <div class="mt-4 flex gap-2">
+                        <span id="loc-tag1" class="text-xs bg-brand-green px-2 py-1 rounded">軟體科技</span>
+                        <span id="loc-tag2" class="text-xs bg-brand-clay px-2 py-1 rounded">文化創意</span>
+                    </div>
+                </div>
+                <p class="mt-4 text-xs text-gray-500"><i class="fa-solid fa-computer-mouse animate-pulse"></i> 點擊地圖圓點探索不同城市</p>
+            </div>
+
+            <!-- SVG Map -->
+            <div class="w-full md:w-1/2 flex justify-center relative">
+                <!-- Stylized Taiwan Map SVG -->
+                <svg width="300" height="500" viewBox="0 0 300 500" class="drop-shadow-2xl">
+                    <!-- Silhouette (Simplified) -->
+                    <path d="M140,20 C160,30 180,50 190,80 C200,100 195,120 185,150 C180,180 170,220 160,260 C150,300 145,350 140,400 C135,420 130,440 120,450 C110,460 100,450 90,420 C80,380 70,300 80,200 C85,150 100,80 120,40 Z" fill="#334155" stroke="#475569" stroke-width="2"/>
+                    
+                    <!-- Cities Points -->
+                    <circle id="point-taipei" cx="160" cy="60" r="6" fill="#f5f5f4" class="map-point active" onclick="updateMap('taipei')"/>
+                    <circle id="point-taichung" cx="120" cy="180" r="6" fill="#f5f5f4" class="map-point" onclick="updateMap('taichung')"/>
+                    <circle id="point-tainan" cx="95" cy="320" r="6" fill="#f5f5f4" class="map-point" onclick="updateMap('tainan')"/>
+                    <circle id="point-hualien" cx="170" cy="200" r="6" fill="#f5f5f4" class="map-point" onclick="updateMap('hualien')"/>
+                </svg>
+                
+                <!-- Connector Line (Decorative) -->
+                <div class="absolute top-10 right-10 text-right hidden md:block">
+                    <p class="text-brand-clay font-bold text-6xl opacity-20">TW</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Scripts -->
+    <script is:inline>
+        // Data for Map Interaction
+        const cityData = {
+            'taipei': {
+                title: '台北 Taipei',
+                desc: '台灣的科技與創意中心。匯聚了軟體園區、創新設計中心以及各大國際展覽。這裡是「設計」與「創新」的起點。',
+                tags: ['軟體科技', '文化創意']
+            },
+            'taichung': {
+                title: '台中 Taichung',
+                desc: '精密機械與自行車的故鄉。全球高端自行車零件與航太精密組件的主要產地，展現極致的製造工藝。',
+                tags: ['精密機械', '自行車產業']
+            },
+            'tainan': {
+                title: '台南 Tainan',
+                desc: '歷史古都與紡織重鎮。融合了傳統美食文化與現代機能紡織技術，是「新舊交融」的最佳典範。',
+                tags: ['機能紡織', '在地美食']
+            },
+            'hualien': {
+                title: '花蓮 Hualien',
+                desc: '大自然的寶庫。以有機農業、石材加工與原住民工藝聞名，提供最純淨的自然產品。',
+                tags: ['有機農業', '石材藝術']
+            }
+        };
+
+        window.updateMap = function(city) {
+            // Update Text
+            const info = document.getElementById('location-info');
+            
+            // Trigger animation reset
+            info.classList.remove('fade-in');
+            void info.offsetWidth; // trigger reflow
+            info.classList.add('fade-in');
+
+            document.getElementById('loc-title').innerText = cityData[city].title;
+            document.getElementById('loc-desc').innerText = cityData[city].desc;
+            document.getElementById('loc-tag1').innerText = cityData[city].tags[0];
+            document.getElementById('loc-tag2').innerText = cityData[city].tags[1];
+
+            // Update Active Dot State
+            document.querySelectorAll('.map-point').forEach(p => p.classList.remove('active'));
+            document.getElementById('point-' + city).classList.add('active');
+        }
+    </script>
 </Layout>
-
-<style>
-  /* Hero Section */
-  .hero-section {
-    text-align: center;
-    padding: 6rem 0;
-    position: relative;
-    /* Clean, organic background instead of gradient */
-    background-image: radial-gradient(#234E34 0.5px, transparent 0.5px);
-    background-size: 24px 24px;
-    opacity: 0.8;
-  }
-
-  .hero-title {
-    font-size: 3.5rem;
-    font-weight: 700;
-    margin-bottom: 1.5rem;
-    line-height: 1.2;
-    color: var(--primary);
-  }
-
-  .hero-subtitle {
-    font-size: 1.25rem;
-    color: var(--text-muted);
-    max-width: 600px;
-    margin: 0 auto;
-    line-height: 1.8;
-    font-family: 'Noto Serif TC', serif;
-  }
-
-  /* Grid Layout */
-  .card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 2.5rem; /* Larger gap for airier feel */
-  }
-
-  /* Category Card */
-  .category-card {
-    background: var(--bg-surface);
-    border: none; /* Removed border */
-    /* border-top: 4px solid var(--primary); Accent top border */
-    border-radius: var(--radius);
-    padding: 2.5rem 2rem;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100%;
-    box-shadow: var(--shadow); /* Soft, diffuse shadow */
-    position: relative;
-    text-align: center;
-  }
-
-  .category-card:hover {
-    transform: translateY(-8px);
-    box-shadow: var(--shadow-lg);
-  }
-
-  .icon-wrapper {
-    font-size: 2.5rem;
-    margin-bottom: 1.5rem;
-    display: block;
-  }
-
-  .card-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 1rem;
-  }
-
-  .card-description {
-    color: var(--text-muted);
-    font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 2rem;
-  }
-
-  .card-action {
-    color: var(--secondary);
-    font-weight: 600;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.8;
-    transition: all 0.3s ease;
-  }
-
-  .category-card:hover .card-action {
-    opacity: 1;
-    letter-spacing: 0.1em; /* Subtle expansion */
-  }
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .hero-title {
-      font-size: 2.5rem;
-    }
-    
-    .card-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>

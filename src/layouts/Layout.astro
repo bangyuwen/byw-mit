@@ -12,157 +12,131 @@ const baseUrl = import.meta.env.BASE_URL.endsWith('/')
 ---
 
 <!doctype html>
-<html lang="zh-TW">
+<html lang="zh-TW" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href={`${baseUrl}favicon.svg`} />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content="支持台灣的產品、店家、公司與創作者名錄" />
-    <meta name="robots" content="index, follow" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content="支持台灣的產品、店家、公司與創作者名錄" />
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="zh_TW" />
+    <meta name="description" content="Formosa Selects | 台灣工藝嚴選" />
     <title>{title}</title>
+
+    <!-- Google Fonts: Noto Sans TC & Playfair Display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   </head>
-  <body>
-    <header class="site-header">
-      <div class="container header-container">
-        <a href={baseUrl} class="logo">
-          <span class="logo-icon">🇹🇼</span>
-          台灣支持名錄
-        </a>
-        <nav class="main-nav">
-          <ul>
-            <li><a href={`${baseUrl}products/`}>台灣製造</a></li>
-            <li><a href={`${baseUrl}stores/`}>友善店家</a></li>
-            <li><a href={`${baseUrl}singers/`}>歌手/樂團</a></li>
-            <li><a href={`${baseUrl}actors/`}>演員</a></li>
-            <li><a href={`${baseUrl}artists/`}>藝術家</a></li>
-            <li><a href={`${baseUrl}misc/`}>其他創作者</a></li>
-          </ul>
-        </nav>
-      </div>
-    </header>
+  <body class="bg-brand-sand text-slate-800 font-sans antialiased">
+
+    <!-- Navigation -->
+    <nav id="navbar" class="fixed w-full z-50 transition-all duration-300 bg-transparent text-white py-4">
+        <div class="container mx-auto px-6 flex justify-between items-center">
+            <!-- Logo -->
+            <a href={baseUrl} class="text-2xl font-serif font-bold tracking-widest flex items-center gap-2">
+                <i class="fa-solid fa-leaf text-brand-green"></i>
+                FORMOSA <span class="text-sm font-sans font-light tracking-wide opacity-80">SELECTS</span>
+            </a>
+
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex items-center space-x-8 text-sm font-medium tracking-wide">
+                <a href={`${baseUrl}#curators`} class="hover:text-brand-green transition">達人引路</a>
+                <a href={`${baseUrl}#stories`} class="hover:text-brand-green transition">品牌故事</a>
+                <a href={`${baseUrl}#products`} class="hover:text-brand-green transition">嚴選商品</a>
+
+                <div class="border-l border-white/30 pl-6 flex gap-4">
+                    <button class="hover:text-brand-green"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </div>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="md:hidden text-2xl">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+    </nav>
 
     <main>
-      <div class="container">
-        <slot />
-      </div>
+      <slot />
     </main>
 
-    <footer class="site-footer">
-      <div class="container footer-content">
-        <p>台灣支持名錄 &copy; {new Date().getFullYear()}</p>
-        <p class="subtitle">用消費支持台灣，從這裡開始。</p>
-      </div>
+    <!-- Newsletter / Footer -->
+    <footer class="bg-brand-sand pt-16 pb-8 border-t border-gray-200">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-start gap-12 mb-12">
+                <!-- Brand -->
+                <div class="w-full md:w-1/3">
+                    <a href={baseUrl} class="text-2xl font-serif font-bold tracking-widest flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-leaf text-brand-green"></i>
+                        FORMOSA <span class="text-sm font-sans font-light tracking-wide opacity-80">SELECTS</span>
+                    </a>
+                    <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                        致力於將台灣最優質的工藝與設計推向世界舞台。Formosa Selects 是您連結台灣製造的首選平台。
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="#" class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm hover:bg-brand-green hover:text-white transition"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm hover:bg-brand-green hover:text-white transition"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm hover:bg-brand-green hover:text-white transition"><i class="fa-brands fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <!-- Links -->
+                <div class="w-full md:w-1/3 grid grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="font-bold mb-4 text-brand-dark">探索</h4>
+                        <ul class="space-y-2 text-sm text-gray-500">
+                            <li><a href={`${baseUrl}products/`} class="hover:text-brand-green">所有產品</a></li>
+                            <li><a href="#" class="hover:text-brand-green">職人專欄</a></li>
+                            <li><a href="#" class="hover:text-brand-green">永續專區</a></li>
+                            <li><a href="#" class="hover:text-brand-green">最新消息</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold mb-4 text-brand-dark">服務</h4>
+                        <ul class="space-y-2 text-sm text-gray-500">
+
+                            <li><a href="#" class="hover:text-brand-green">常見問題</a></li>
+                            <li><a href="#" class="hover:text-brand-green">運送政策</a></li>
+                            <li><a href="#" class="hover:text-brand-green">聯絡我們</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Newsletter -->
+                <div class="w-full md:w-1/3">
+                    <h4 class="font-bold mb-4 text-brand-dark">訂閱來自台灣的美好</h4>
+                    <p class="text-gray-500 text-sm mb-4">接收最新的設計趨勢與獨家優惠。</p>
+                    <form class="flex gap-2">
+                        <input type="email" placeholder="您的 Email" class="flex-1 px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-brand-green bg-white text-gray-700" />
+                        <button type="button" class="bg-brand-green text-white px-6 py-2 rounded-sm hover:bg-brand-green/90 transition">訂閱</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400">
+                <p>&copy; {new Date().getFullYear()} Formosa Selects. All rights reserved.</p>
+                <div class="flex gap-4 mt-4 md:mt-0">
+                    <a href="#" class="hover:text-gray-600">隱私權政策</a>
+                    <a href="#" class="hover:text-gray-600">使用條款</a>
+                </div>
+            </div>
+        </div>
     </footer>
+
+    <!-- Navbar Scroll Script -->
+    <script is:inline>
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('bg-brand-dark', 'shadow-md', 'py-2');
+                navbar.classList.remove('bg-transparent', 'py-4');
+            } else {
+                navbar.classList.remove('bg-brand-dark', 'shadow-md', 'py-2');
+                navbar.classList.add('bg-transparent', 'py-4');
+            }
+        });
+    </script>
   </body>
 </html>
-
-<style>
-  /* Header Styles */
-  .site-header {
-    background: rgba(249, 249, 247, 0.95); /* Matches bg-body with opacity */
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--border);
-    height: var(--header-height);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .header-container {
-    height: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .logo {
-    font-family: 'Noto Serif TC', serif;
-    font-weight: 700;
-    font-size: 1.5rem; /* Larger logo */
-    color: var(--primary);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    letter-spacing: -0.02em;
-  }
-
-  .logo-icon {
-    font-size: 1.25rem;
-  }
-
-  .main-nav ul {
-    display: flex;
-    gap: 1.5rem; /* More spacing */
-    list-style: none;
-  }
-
-  .main-nav a {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    font-weight: 500;
-    padding: 0.25rem 0;
-    border-bottom: 2px solid transparent; /* Underline effect */
-    border-radius: 0;
-  }
-
-  .main-nav a:hover {
-    color: var(--primary);
-    background: transparent;
-    border-bottom-color: var(--secondary); /* Accent color underline */
-  }
-
-  /* Main Content */
-  main {
-    flex: 1;
-    padding: 4rem 0;
-  }
-
-  /* Footer Styles */
-  .site-footer {
-    background: #234E34; /* Dark Green Footer */
-    color: #F9F9F7;
-    padding: 3rem 0;
-    margin-top: auto;
-  }
-
-  .footer-content {
-    text-align: center;
-    opacity: 0.9;
-  }
-
-  .footer-content p {
-    color: #e2e8f0; /* Light text for dark bg */
-  }
-
-  .footer-content .subtitle {
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
-    opacity: 0.7;
-    font-family: 'Noto Serif TC', serif;
-    font-style: italic;
-  }
-
-  @media (max-width: 768px) {
-    .header-container {
-      flex-direction: column;
-      height: auto;
-      padding: 1rem;
-      gap: 1rem;
-    }
-
-    .site-header {
-      height: auto;
-    }
-
-    .main-nav ul {
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.75rem;
-    }
-  }
-</style>
