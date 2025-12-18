@@ -40,3 +40,21 @@ export interface MiscCreator {
   notes?: string;
   is_recommender?: boolean;
 }
+
+export interface Place {
+  name: string;
+  url: string;
+  place_id: string;
+  image_url: string | null;
+  description: string | null;
+  category: string;
+  lat: number | null;
+  lng: number | null;
+}
+
+export interface GluttonyData {
+  title: string;
+  count: number;
+  extracted_at: string;
+  places: Place[];
+}

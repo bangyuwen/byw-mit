@@ -8,7 +8,6 @@ import '../styles/global.css';
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>優質店家</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script is:inline src="/byw-mit/papaparse.min.js"></script>
     <script is:inline src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <style>
         /* Map needs explicit height */
@@ -153,8 +152,7 @@ import '../styles/global.css';
 </footer>
 
 <script is:inline>
-    const CSV_URL = '/byw-mit/mock_shops.csv';
-    const LEADERBOARD_URL = '/byw-mit/mock_leaderboard.csv';
+    const DATA_URL = '/byw-mit/gluttony.json';
 
     let allShops = [];
     let visitedShops = JSON.parse(localStorage.getItem('visited_shops')) || [];
@@ -170,43 +168,47 @@ import '../styles/global.css';
             localStorage.setItem('user_name', userName);
         }
 
-        if (typeof Papa === 'undefined') {
-            document.getElementById('loading').innerHTML = '<div class="alert alert-error"><span>❌ 無法載入 PapaParse</span></div>';
-            return;
-        }
-
         fetchData();
-        fetchLeaderboard();
     });
 
-    function fetchData() {
-        Papa.parse(CSV_URL, {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
-            complete: function(results) {
-                if (!results.data || results.data.length === 0) {
-                    document.getElementById('loading').innerHTML = '<div class="alert alert-warning"><span>⚠️ 載入成功但沒有資料</span></div>';
-                    return;
-                }
+    async function fetchData() {
+        try {
+            const response = await fetch(DATA_URL);
+            if (!response.ok) throw new Error('Failed to fetch data');
+            const data = await response.json();
 
-                allShops = results.data.filter(item => item.id && item.name);
-
-                if (allShops.length === 0) {
-                    document.getElementById('loading').innerHTML = '<div class="alert alert-warning"><span>⚠️ 資料格式不符</span></div>';
-                    return;
-                }
-
-                document.getElementById('loading').style.display = 'none';
-                initMap();
-                renderFilters();
-                renderShops();
-                updateProgress();
-            },
-            error: function(err) {
-                document.getElementById('loading').innerHTML = `<div class="alert alert-error"><span>❌ 載入失敗: ${err.message || '未知錯誤'}</span></div>`;
+            if (!data.places || data.places.length === 0) {
+                document.getElementById('loading').innerHTML = '<div class="alert alert-warning"><span>⚠️ 載入成功但沒有資料</span></div>';
+                return;
             }
-        });
+
+            // Map gluttony.json fields to expected shop format
+            allShops = data.places.map(place => ({
+                id: place.place_id,
+                name: place.name,
+                category: place.category,
+                description: place.description || '',
+                map_url: place.url,
+                lat: place.lat,
+                lng: place.lng,
+                popularity: 0,
+                recent_visitors: ''
+            }));
+
+            if (allShops.length === 0) {
+                document.getElementById('loading').innerHTML = '<div class="alert alert-warning"><span>⚠️ 資料格式不符</span></div>';
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'none';
+            initMap();
+            renderFilters();
+            renderShops();
+            updateProgress();
+            fetchLeaderboard();
+        } catch (err) {
+            document.getElementById('loading').innerHTML = `<div class="alert alert-error"><span>❌ 載入失敗: ${err.message || '未知錯誤'}</span></div>`;
+        }
     }
 
     function renderFilters() {
@@ -435,26 +437,13 @@ import '../styles/global.css';
             const card = document.createElement('div');
             card.className = `card bg-base-100 shadow-sm hover:shadow-md transition-shadow shop-card ${isVisited ? 'visited' : ''}`;
 
-            // Category colors using DaisyUI color classes
-            let bgClass = 'bg-base-200';
+            // Category icons
             let visualIcon = '🇹🇼';
-
-            if (shop.category === '美食') {
-                visualIcon = '🍜';
-                bgClass = 'bg-warning/20';
-            } else if (shop.category === '咖啡') {
-                visualIcon = '☕';
-                bgClass = 'bg-secondary/20';
-            } else if (shop.category === '景點') {
-                visualIcon = '⛩️';
-                bgClass = 'bg-success/20';
-            } else if (shop.category === '書店') {
-                visualIcon = '📚';
-                bgClass = 'bg-accent/20';
-            } else if (shop.category === '生活') {
-                visualIcon = '🏠';
-                bgClass = 'bg-info/20';
-            }
+            if (shop.category === '美食') visualIcon = '🍜';
+            else if (shop.category === '咖啡') visualIcon = '☕';
+            else if (shop.category === '景點') visualIcon = '⛩️';
+            else if (shop.category === '書店') visualIcon = '📚';
+            else if (shop.category === '生活') visualIcon = '🏠';
 
             const visitors = shop.recent_visitors ? shop.recent_visitors.split(',').map(v => v.trim()).filter(v => v) : [];
             const visitorsHtml = visitors.length > 0
@@ -497,33 +486,34 @@ import '../styles/global.css';
             const showRecommendBadge = isRecommend && shop.cfScore;
 
             card.innerHTML = `
-                <figure class="${bgClass} h-28 flex items-center justify-center relative">
-                    <span class="text-5xl">${visualIcon}</span>
-                    ${showRecommendBadge ? '<div class="badge badge-primary absolute top-2 right-2 text-xs">✨ 推薦</div>' : ''}
-                    ${isHot && !showRecommendBadge ? '<div class="badge badge-error absolute top-2 right-2 text-xs">HOT</div>' : ''}
-                </figure>
                 <div class="card-body p-4 relative">
                     <div class="stamp-mark">
                         <div class="badge badge-success badge-lg">✓ COMPLETED</div>
                     </div>
-                    <h3 class="card-title text-base">
-                        ${shop.name}
-                        ${isHot ? '<span class="text-warning">🔥</span>' : ''}
-                    </h3>
-                    <div class="badge badge-outline badge-sm">${shop.category}</div>
-                    <p class="text-sm text-base-content/70 line-clamp-2">${shop.description || '暫無介紹'}</p>
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">${visualIcon}</span>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold text-base leading-tight">
+                                ${shop.name}
+                                ${isHot ? '<span class="text-warning text-sm">🔥</span>' : ''}
+                                ${showRecommendBadge ? '<span class="badge badge-primary badge-xs ml-1">推薦</span>' : ''}
+                            </h3>
+                            <span class="text-xs text-base-content/50">${shop.category}</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-base-content/60 line-clamp-2 mt-2">${shop.description || '暫無介紹'}</p>
                     ${statsHtml}
                     ${similarToHtml}
                     ${visitorsHtml}
                     <div class="card-actions justify-between items-center mt-auto pt-3 border-t border-base-200">
-                        <div class="flex gap-2">
-                            <a href="${shop.map_url}" target="_blank" class="btn btn-sm btn-ghost btn-circle" title="地圖">📍</a>
-                            <button class="btn btn-sm btn-circle ${isFavorite ? 'btn-error text-white' : 'btn-ghost text-error'}"
+                        <div class="flex gap-1">
+                            <a href="${shop.map_url}" target="_blank" class="btn btn-xs btn-ghost" title="地圖">📍</a>
+                            <button class="btn btn-xs ${isFavorite ? 'btn-error text-white' : 'btn-ghost text-error'}"
                                     onclick="toggleFavorite('${shop.id}', this)" title="收藏">
                                 ${isFavorite ? '❤' : '♡'}
                             </button>
                         </div>
-                        <button class="btn btn-sm ${isVisited ? 'btn-success' : 'btn-outline'}"
+                        <button class="btn btn-xs ${isVisited ? 'btn-success' : 'btn-outline'}"
                                 onclick="toggleVisit('${shop.id}')">
                             ${isVisited ? '已攻略' : '攻略'}
                         </button>
@@ -552,7 +542,6 @@ import '../styles/global.css';
 
     window.toggleVisit = function(id) {
         if (visitedShops.includes(id)) {
-            if(!confirm('確定要取消這個踩點紀錄嗎？')) return;
             visitedShops = visitedShops.filter(sid => sid !== id);
         } else {
             visitedShops.push(id);
@@ -629,17 +618,9 @@ import '../styles/global.css';
     }
 
     function fetchLeaderboard() {
-        Papa.parse(LEADERBOARD_URL, {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
-            complete: function(results) {
-                if (results.data) {
-                    leaderboardData = results.data;
-                    renderLeaderboard();
-                }
-            }
-        });
+        // Leaderboard data starts empty, will be populated as users interact
+        leaderboardData = [];
+        renderLeaderboard();
     }
 
     function renderLeaderboard() {
