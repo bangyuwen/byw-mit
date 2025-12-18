@@ -209,7 +209,7 @@ import '../styles/global.css';
     }
 
     function renderFilters() {
-        const categories = ['全部', '熱門', ...new Set(allShops.map(s => s.category))];
+        const categories = ['全部', '推薦', '熱門', ...new Set(allShops.map(s => s.category))];
         const container = document.getElementById('filter-container');
 
         let html = '';
@@ -219,6 +219,9 @@ import '../styles/global.css';
 
             if (cat === '全部') {
                 val = 'all';
+            } else if (cat === '推薦') {
+                val = 'recommend';
+                label = '✨ 推薦給你';
             } else if (cat === '熱門') {
                 val = 'hot';
                 label = '🔥 熱門';
@@ -242,13 +245,145 @@ import '../styles/global.css';
         updateMapMarkers();
     }
 
+    // Build shop visitor sets (cached for performance)
+    function getShopVisitorMap() {
+        const shopVisitorMap = new Map(); // shop_id -> Set of visitors
+        allShops.forEach(shop => {
+            const visitors = shop.recent_visitors
+                ? new Set(shop.recent_visitors.split(',').map(v => v.trim()).filter(v => v))
+                : new Set();
+            shopVisitorMap.set(shop.id, visitors);
+        });
+        return shopVisitorMap;
+    }
+
+    // Item-to-Item CF: calculate similarity between two shops based on shared visitors
+    function calcItemSimilarity(visitorsA, visitorsB) {
+        if (visitorsA.size === 0 || visitorsB.size === 0) return 0;
+        const intersection = [...visitorsA].filter(v => visitorsB.has(v)).length;
+        const union = new Set([...visitorsA, ...visitorsB]).size;
+        return union > 0 ? intersection / union : 0;
+    }
+
+    // User-based CF: find similar users
+    function getUserBasedScores(userShopMap, myShopsSet) {
+        const shopScores = new Map();
+
+        userShopMap.forEach((userShops) => {
+            const intersection = [...myShopsSet].filter(id => userShops.has(id)).length;
+            const union = new Set([...myShopsSet, ...userShops]).size;
+            const similarity = union > 0 ? intersection / union : 0;
+
+            if (similarity > 0) {
+                userShops.forEach(shopId => {
+                    if (!myShopsSet.has(shopId)) {
+                        const current = shopScores.get(shopId) || 0;
+                        shopScores.set(shopId, current + similarity);
+                    }
+                });
+            }
+        });
+
+        return shopScores;
+    }
+
+    // Item-to-Item CF: find similar shops to what user visited
+    function getItemBasedScores(shopVisitorMap, myShopsSet) {
+        const shopScores = new Map();
+
+        // For each shop user visited, find similar unvisited shops
+        myShopsSet.forEach(visitedId => {
+            const visitedVisitors = shopVisitorMap.get(visitedId) || new Set();
+
+            allShops.forEach(shop => {
+                if (myShopsSet.has(shop.id)) return; // Skip already visited
+
+                const shopVisitors = shopVisitorMap.get(shop.id) || new Set();
+                const similarity = calcItemSimilarity(visitedVisitors, shopVisitors);
+
+                if (similarity > 0) {
+                    const current = shopScores.get(shop.id) || 0;
+                    shopScores.set(shop.id, current + similarity);
+                }
+            });
+        });
+
+        return shopScores;
+    }
+
+    // Hybrid Collaborative Filtering: combine user-based and item-based
+    function getRecommendations() {
+        if (visitedShops.length === 0) {
+            // Cold start: return popular shops
+            return allShops
+                .filter(s => !visitedShops.includes(s.id))
+                .sort((a, b) => (parseInt(b.popularity) || 0) - (parseInt(a.popularity) || 0))
+                .slice(0, 10);
+        }
+
+        const myShopsSet = new Set(visitedShops);
+        const shopVisitorMap = getShopVisitorMap();
+
+        // Build user-shop matrix
+        const userShopMap = new Map();
+        allShops.forEach(shop => {
+            const visitors = shop.recent_visitors ? shop.recent_visitors.split(',').map(v => v.trim()).filter(v => v) : [];
+            visitors.forEach(user => {
+                if (!userShopMap.has(user)) {
+                    userShopMap.set(user, new Set());
+                }
+                userShopMap.get(user).add(shop.id);
+            });
+        });
+
+        // Get scores from both methods
+        const userBasedScores = getUserBasedScores(userShopMap, myShopsSet);
+        const itemBasedScores = getItemBasedScores(shopVisitorMap, myShopsSet);
+
+        // Combine scores (weighted: 0.5 user-based + 0.5 item-based)
+        const combinedScores = new Map();
+        const allShopIds = new Set([...userBasedScores.keys(), ...itemBasedScores.keys()]);
+
+        allShopIds.forEach(shopId => {
+            const userScore = userBasedScores.get(shopId) || 0;
+            const itemScore = itemBasedScores.get(shopId) || 0;
+            combinedScores.set(shopId, 0.5 * userScore + 0.5 * itemScore);
+        });
+
+        // Sort and return top recommendations
+        const recommended = [...combinedScores.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([shopId, score]) => {
+                const shop = allShops.find(s => s.id === shopId);
+                return { ...shop, cfScore: score };
+            })
+            .filter(s => s.id);
+
+        // If not enough recommendations, fill with popular unvisited shops
+        if (recommended.length < 5) {
+            const popular = allShops
+                .filter(s => !visitedShops.includes(s.id) && !recommended.find(r => r.id === s.id))
+                .sort((a, b) => (parseInt(b.popularity) || 0) - (parseInt(a.popularity) || 0))
+                .slice(0, 5 - recommended.length);
+            recommended.push(...popular);
+        }
+
+        return recommended;
+    }
+
     function renderShops() {
         const container = document.getElementById('shop-list');
         container.innerHTML = '';
 
         let filtered = [];
+        let isRecommend = false;
+
         if (currentFilter === 'all') {
             filtered = allShops;
+        } else if (currentFilter === 'recommend') {
+            filtered = getRecommendations();
+            isRecommend = true;
         } else if (currentFilter === 'hot') {
             filtered = allShops.filter(s => (parseInt(s.popularity) || 0) >= 800);
             filtered.sort((a, b) => (parseInt(b.popularity) || 0) - (parseInt(a.popularity) || 0));
@@ -259,6 +394,16 @@ import '../styles/global.css';
         if(filtered.length === 0) {
             container.innerHTML = '<div class="col-span-full text-center py-8 text-base-content/60">沒有符合的店家</div>';
             return;
+        }
+
+        // Show recommendation explanation
+        if (isRecommend) {
+            const explainDiv = document.createElement('div');
+            explainDiv.className = 'col-span-full mb-4 p-3 bg-primary/10 rounded-lg text-sm text-center';
+            explainDiv.innerHTML = visitedShops.length > 0
+                ? '🤝 根據相似玩家 + 相似店家推薦（Hybrid CF）'
+                : '🌟 你還沒踩點，先推薦熱門店家給你';
+            container.appendChild(explainDiv);
         }
 
         filtered.forEach(shop => {
@@ -290,10 +435,22 @@ import '../styles/global.css';
                 bgClass = 'bg-info/20';
             }
 
+            const visitors = shop.recent_visitors ? shop.recent_visitors.split(',').map(v => v.trim()).filter(v => v) : [];
+            const visitorsHtml = visitors.length > 0
+                ? `<div class="flex flex-wrap gap-1 mt-2">
+                    <span class="text-xs text-base-content/50">去過：</span>
+                    ${visitors.slice(0, 3).map(v => `<span class="badge badge-ghost badge-xs">${v}</span>`).join('')}
+                    ${visitors.length > 3 ? `<span class="text-xs text-base-content/50">+${visitors.length - 3}</span>` : ''}
+                   </div>`
+                : '';
+
+            const showRecommendBadge = isRecommend && shop.cfScore;
+
             card.innerHTML = `
                 <figure class="${bgClass} h-28 flex items-center justify-center relative">
                     <span class="text-5xl">${visualIcon}</span>
-                    ${isHot ? '<div class="badge badge-error absolute top-2 right-2 text-xs">HOT</div>' : ''}
+                    ${showRecommendBadge ? '<div class="badge badge-primary absolute top-2 right-2 text-xs">✨ 推薦</div>' : ''}
+                    ${isHot && !showRecommendBadge ? '<div class="badge badge-error absolute top-2 right-2 text-xs">HOT</div>' : ''}
                 </figure>
                 <div class="card-body p-4 relative">
                     <div class="stamp-mark">
@@ -305,6 +462,7 @@ import '../styles/global.css';
                     </h3>
                     <div class="badge badge-outline badge-sm">${shop.category}</div>
                     <p class="text-sm text-base-content/70 line-clamp-2">${shop.description || '暫無介紹'}</p>
+                    ${visitorsHtml}
                     <div class="card-actions justify-between items-center mt-auto pt-3 border-t border-base-200">
                         <a href="${shop.map_url}" target="_blank" class="link link-primary text-sm">📍 地圖</a>
                         <button class="btn btn-sm ${isVisited ? 'btn-success' : 'btn-outline'}"
@@ -369,11 +527,16 @@ import '../styles/global.css';
         markers.forEach(m => map.removeLayer(m));
         markers = [];
 
-        const filtered = currentFilter === 'all'
-            ? allShops
-            : currentFilter === 'hot'
-                ? allShops.filter(s => (parseInt(s.popularity) || 0) >= 800)
-                : allShops.filter(s => s.category === currentFilter);
+        let filtered;
+        if (currentFilter === 'all') {
+            filtered = allShops;
+        } else if (currentFilter === 'recommend') {
+            filtered = getRecommendations();
+        } else if (currentFilter === 'hot') {
+            filtered = allShops.filter(s => (parseInt(s.popularity) || 0) >= 800);
+        } else {
+            filtered = allShops.filter(s => s.category === currentFilter);
+        }
 
         filtered.forEach(shop => {
             if (shop.lat && shop.lng) {
