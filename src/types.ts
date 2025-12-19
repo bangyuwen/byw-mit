@@ -50,6 +50,8 @@ export interface Place {
   category: string;
   lat: number | null;
   lng: number | null;
+  google_rating: number | null;
+  google_reviews_count: number | null;
 }
 
 export interface GluttonyData {

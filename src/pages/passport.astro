@@ -187,7 +187,9 @@ import '../styles/global.css';
                 lat: place.lat,
                 lng: place.lng,
                 popularity: 0,
-                recent_visitors: ''
+                recent_visitors: '',
+                google_rating: place.google_rating,
+                google_reviews_count: place.google_reviews_count
             }));
 
             if (allShops.length === 0) {
@@ -450,12 +452,22 @@ import '../styles/global.css';
                 : '';
 
             // Item-to-Item: show which visited shops are similar
+            // Google Rating
+            const googleRatingHtml = (shop.google_rating != null)
+                ? `<div class="flex items-center gap-1 text-sm text-warning mt-2">
+                    <span>⭐</span>
+                    <span class="font-medium">${shop.google_rating}</span>
+                    <span class="text-base-content/50 text-xs">${shop.google_reviews_count != null ? `/ ${shop.google_reviews_count} 人` : ''}</span>
+                   </div>`
+                : '';
+
             // Social Counts
             const visitCount = visitors.length;
             const collectCount = parseInt(shop.popularity) || 0;
-            
+
             const statsHtml = `
-                <div class="flex gap-3 text-xs text-base-content/60 mt-2 mb-1">
+                ${googleRatingHtml}
+                <div class="flex gap-3 text-xs text-base-content/60 mt-1 mb-1">
                     <span class="flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
