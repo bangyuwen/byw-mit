@@ -46,7 +46,15 @@ import '../styles/global.css';
 <!-- Passport View -->
 <div id="passport-view" class="max-w-4xl mx-auto p-4">
     <!-- Filter Buttons -->
-    <div id="filter-container" class="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+    <div id="filter-container" class="flex flex-col sm:flex-row gap-4 mb-4">
+        <!-- Location Filter -->
+        <select id="location-filter" class="select select-sm select-bordered w-full sm:w-auto min-w-[120px]" onchange="setLocationFilter(this.value)">
+            <option value="all">全台灣</option>
+        </select>
+        
+        <!-- Category Filters -->
+        <div id="filter-categories" class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-1">
+        </div>
     </div>
 
     <!-- Map -->
@@ -211,6 +219,7 @@ import '../styles/global.css';
             toggleVisit: (id: string) => void;
             switchTab: (tabName: string) => void;
             updateUserName: () => void;
+            setLocationFilter: (location: string) => void;
             exportData: () => void;
             importData: () => void;
             resetData: () => void;
@@ -242,6 +251,7 @@ import '../styles/global.css';
     let favoriteShops: string[] = getFavoriteShops();
     let userName = getUserName();
     let currentFilter = 'all';
+    let currentLocationFilter = 'all';
     let mapRenderer: MapRenderer | null = null;
     let leaderboardData: LeaderboardEntry[] = [];
     let currentBounds: MapBounds | null = null;
@@ -324,9 +334,28 @@ import '../styles/global.css';
     }
 
     function renderFilters() {
+        // Extract unique locations
+        const locations = new Set<string>();
+        allShops.forEach(s => {
+            if (s.county) locations.add(s.county);
+            if (s.city) locations.add(s.city);
+        });
+        const sortedLocations = Array.from(locations).sort();
+
+        // Render Location Select
+        const locationSelect = document.getElementById('location-filter');
+        if (locationSelect) {
+            let options = '<option value="all">全台灣</option>';
+            sortedLocations.forEach(loc => {
+                options += `<option value="${loc}" ${currentLocationFilter === loc ? 'selected' : ''}>${loc}</option>`;
+            });
+            locationSelect.innerHTML = options;
+        }
+
+        // Render Category Buttons
         // Remove '推薦' from the main filter list
         const categories = ['全部', '熱門', ...new Set(allShops.map(s => s.category))];
-        const container = document.getElementById('filter-container');
+        const container = document.getElementById('filter-categories');
         if (!container) return; // Null check
 
         let html = '';
@@ -341,16 +370,22 @@ import '../styles/global.css';
                 label = '🔥 熱門';
             }
 
-            html += `<button class="btn btn-sm ${val === currentFilter ? 'btn-primary' : 'btn-ghost'}"
+            html += `<button class="btn btn-sm ${val === currentFilter ? 'btn-primary' : 'btn-ghost'} whitespace-nowrap"
                              onclick="setFilter('${val}', this)">${label}</button>`;
         });
         container.innerHTML = html;
     }
 
+    window.setLocationFilter = function(location: string) {
+        currentLocationFilter = location;
+        renderShops();
+        updateMapMarkers();
+    }
+
     window.setFilter = function(category: string, btnElement: HTMLElement | null) {
         currentFilter = category;
         selectedShopId = null; // Reset selection on filter change
-        document.querySelectorAll('#filter-container .btn').forEach(b => {
+        document.querySelectorAll('#filter-categories .btn').forEach(b => {
              b.classList.remove('btn-primary');
              b.classList.add('btn-ghost');
         });
@@ -379,9 +414,9 @@ import '../styles/global.css';
         if (currentFilter === 'all') {
             // Get center for sorting by distance
             const center = mapRenderer ? mapRenderer.getCenter() : null;
-            filtered = getFilteredShops('all', allShops, visitedShops, currentBounds, center);
+            filtered = getFilteredShops('all', allShops, visitedShops, currentBounds, center, currentLocationFilter);
         } else {
-            filtered = getFilteredShops(currentFilter, allShops, visitedShops, currentBounds);
+            filtered = getFilteredShops(currentFilter, allShops, visitedShops, currentBounds, null, currentLocationFilter);
             if (currentFilter === 'recommend') isRecommend = true;
         }
 
@@ -660,7 +695,7 @@ import '../styles/global.css';
         return { title: '新手上路', badgeClass: 'badge-warning' };
     }
 
-    function getFilteredShops(filterType: string, shops: LocalShop[], visitedIds: string[], bounds: MapBounds | null = null, center: [number, number] | null = null): LocalShop[] {
+    function getFilteredShops(filterType: string, shops: LocalShop[], visitedIds: string[], bounds: MapBounds | null = null, center: [number, number] | null = null, locationFilter: string = 'all'): LocalShop[] {
         let result: LocalShop[] = [];
         if (filterType === 'all') {
             result = [...shops]; // Copy array to avoid mutating original
@@ -711,6 +746,11 @@ import '../styles/global.css';
             result = shops.filter(s => s.category === filterType);
         }
 
+        // Apply Location Filter
+        if (locationFilter && locationFilter !== 'all') {
+            result = result.filter(s => s.county === locationFilter || s.city === locationFilter);
+        }
+
         if (bounds) {
             result = result.filter(s => {
                 const lat = typeof s.lat === 'number' ? s.lat : parseFloat(s.lat as string);
@@ -751,7 +791,7 @@ import '../styles/global.css';
         if (!mapRenderer) return;
         
         // Pass null for bounds to keep all markers visible on the map
-        const filtered = getFilteredShops(currentFilter, allShops, visitedShops, null, null);
+        const filtered = getFilteredShops(currentFilter, allShops, visitedShops, null, null, currentLocationFilter);
         mapRenderer.updateMarkers(filtered, visitedShops);
     }
 

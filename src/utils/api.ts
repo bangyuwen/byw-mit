@@ -7,6 +7,8 @@ export interface Place {
     lat: string;
     lng: string;
     recent_visitors?: string;
+    county?: string;
+    city?: string;
 }
 
 export interface GluttonyData {
