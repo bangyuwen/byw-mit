@@ -30,7 +30,7 @@ import '../styles/global.css';
 
 <!-- Navbar & Tabs -->
 <!-- Navbar & Tabs -->
-<div id="main-navbar" class="bg-base-100 sticky top-0 z-50 shadow-sm transition-transform duration-300">
+<div id="main-navbar" class="bg-base-100 shadow-sm">
     <div class="navbar min-h-12 flex-col sm:flex-row gap-2 px-4">
         <div class="flex-none">
             <span class="text-xl font-bold">✨ 優質店家護照</span>
@@ -270,25 +270,6 @@ import '../styles/global.css';
 
         userName = getUserName(); 
         fetchData();
-
-        // Navbar scroll logic
-        let lastScrollY = window.scrollY;
-        const navbar = document.getElementById('main-navbar');
-        
-        window.addEventListener('scroll', () => {
-            if (!navbar) return;
-            
-            const currentScrollY = window.scrollY;
-            
-            // Should hide if scrolling down AND past a small threshold
-            if (currentScrollY > 50 && currentScrollY > lastScrollY) {
-                navbar.classList.add('-translate-y-full');
-            } else {
-                navbar.classList.remove('-translate-y-full');
-            }
-            
-            lastScrollY = currentScrollY;
-        }, { passive: true });
     });
 
     // ... (fetchData remains mostly unchanged, just variables) ...
