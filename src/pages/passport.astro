@@ -366,8 +366,68 @@ import '../styles/global.css';
 
     window.setLocationFilter = function(location: string) {
         currentLocationFilter = location;
+        
+        // We need to re-run filtering logic similar to renderShops but we want the result to use for map.
+        // Actually renderShops calls getFilteredShops internally.
+        // But we want to call updateMapMarkers with the NEW filtered list. 
+        // And we want to bounds check on THAT list.
+        
+        // Let's refactor slightly: 
+        // 1. Get filtered shops 
+        const filtered = getFilteredShops(currentFilter, allShops, visitedShops, null, null, currentLocationFilter);
+        
+        // 2. Render list
+        renderShops(); // renderShops recalculates filtered internally if we don't pass it. 
+                       // Wait, renderShops implementation (lines 394+) likely calls getFilteredShops? 
+                       // Let's check view_file 360-400. Yes line 399/400 suggests it rebuilds list or we should pass it.
+                       // Looking at current implementation of renderShops (not fully visible but implied), it likely gets filtered shops itself.
+                       // However, updateMapMarkers ALSO likely gets filtered shops itself or expects them.
+                       
+        // To be SAFE and efficient, let's look at `renderShops` signature or logic. 
+        // Actually, let's just use `filtered` for map syncing since that's independent of rendering.
+        
         renderShops();
         updateMapMarkers();
+        
+        // Sync map with location filter
+        if (mapRenderer) {
+            if (location === 'all') {
+                // Reset to default Taiwan view
+                 mapRenderer.setView([23.97565, 120.9738819], 7);
+            } else {
+                // Find bounds of filtered shops
+                let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+                let hasValidCoords = false;
+
+                filtered.forEach(shop => {
+                     const lat = typeof shop.lat === 'string' ? parseFloat(shop.lat) : shop.lat;
+                     const lng = typeof shop.lng === 'string' ? parseFloat(shop.lng) : shop.lng;
+                     
+                     if (!isNaN(lat) && !isNaN(lng)) {
+                         minLat = Math.min(minLat, lat);
+                         maxLat = Math.max(maxLat, lat);
+                         minLng = Math.min(minLng, lng);
+                         maxLng = Math.max(maxLng, lng);
+                         hasValidCoords = true;
+                     }
+                });
+
+                if (hasValidCoords) {
+                    // Add some padding
+                    const latPad = (maxLat - minLat) * 0.1;
+                    const lngPad = (maxLng - minLng) * 0.1;
+                    // Ensure we don't zoom in too much for single points by adding min buffer
+                    if (latPad === 0) {
+                         mapRenderer.setView([minLat, minLng], 13);
+                    } else {
+                         mapRenderer.fitBounds([
+                             [minLat - latPad, minLng - lngPad], 
+                             [maxLat + latPad, maxLng + lngPad]
+                         ]);
+                    }
+                }
+            }
+        }
     }
 
     window.setFilter = function(category: string, btnElement: HTMLElement | null) {

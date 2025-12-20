@@ -1,6 +1,7 @@
 // Type definitions for minimal Leaflet usage
 interface LeafletMap {
     setView(center: [number, number], zoom: number): LeafletMap;
+    fitBounds(bounds: [[number, number], [number, number]]): void;
     removeLayer(layer: any): void;
     invalidateSize(): void;
     on(event: string, fn: (e?: any) => void): void;
@@ -106,6 +107,18 @@ export class MapRenderer {
         }
     }
 
+    setView(center: [number, number], zoom: number): void {
+        if (this.map) {
+            this.map.setView(center, zoom);
+        }
+    }
+
+    fitBounds(bounds: [[number, number], [number, number]]): void {
+        if (this.map) {
+            this.map.fitBounds(bounds);
+        }
+    }
+
     onMoveEnd(callback: (bounds: MapBounds) => void): void {
         this.onMoveEndCallback = callback;
     }
@@ -184,11 +197,7 @@ export class MapRenderer {
         });
     }
 
-    setView(center: [number, number], zoom: number): void {
-        if (this.map) {
-            this.map.setView(center, zoom);
-        }
-    }
+
 
     addCurrentLocationMarker(lat: number, lng: number): void {
         if (!this.map) return;
