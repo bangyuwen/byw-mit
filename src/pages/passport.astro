@@ -216,6 +216,7 @@ import '../styles/global.css';
     let mapRenderer: MapRenderer | null = null;
     let leaderboardData: LeaderboardEntry[] = [];
     let currentBounds: MapBounds | null = null;
+    let selectedShopId: string | null = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         initUserName();
@@ -301,6 +302,7 @@ import '../styles/global.css';
 
     window.setFilter = function(category: string, btnElement: HTMLElement) {
         currentFilter = category;
+        selectedShopId = null; // Reset selection on filter change
         document.querySelectorAll('#filter-container .btn').forEach(b => {
             b.classList.remove('btn-primary');
             b.classList.add('btn-ghost');
@@ -327,6 +329,21 @@ import '../styles/global.css';
         } else {
             filtered = getFilteredShops(currentFilter, allShops, visitedShops, currentBounds);
             if (currentFilter === 'recommend') isRecommend = true;
+        }
+
+        // Reorder if a shop is selected
+        if (selectedShopId) {
+            const idx = filtered.findIndex(s => s.id === selectedShopId);
+            if (idx > -1) {
+                const [shop] = filtered.splice(idx, 1);
+                filtered.unshift(shop);
+            } else {
+                // If not in the current filtered list (e.g. not recommended), find in allShops
+                const shop = allShops.find(s => s.id === selectedShopId);
+                if (shop) {
+                    filtered.unshift(shop);
+                }
+            }
         }
 
         if(filtered.length === 0) {
@@ -592,6 +609,12 @@ import '../styles/global.css';
             renderShops();
             updateMapMarkers();
         });
+
+        mapRenderer.onShopFocus((id) => {
+            selectedShopId = id;
+            renderShops();
+        });
+
         updateMapMarkers();
     }
 

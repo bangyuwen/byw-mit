@@ -3,7 +3,7 @@ interface LeafletMap {
     setView(center: [number, number], zoom: number): LeafletMap;
     removeLayer(layer: any): void;
     invalidateSize(): void;
-    on(event: string, fn: () => void): void;
+    on(event: string, fn: (e?: any) => void): void;
     getBounds(): {
         getNorth(): number;
         getSouth(): number;
@@ -42,6 +42,7 @@ export class MapRenderer {
     private markers: Map<string, LeafletMarker> = new Map();
     private elementId: string;
     private onMoveEndCallback: ((bounds: MapBounds) => void) | null = null;
+    private onShopFocusCallback: ((id: string | null) => void) | null = null;
 
     constructor(elementId: string) {
         this.elementId = elementId;
@@ -88,11 +89,29 @@ export class MapRenderer {
             this.map.on('moveend', () => {
                 this.handleMoveEnd();
             });
+
+            this.map.on('popupopen', (e: any) => {
+                const marker = e.popup._source;
+                const id = marker?.shopId;
+                if (id && this.onShopFocusCallback) {
+                    this.onShopFocusCallback(id);
+                }
+            });
+
+            this.map.on('popupclose', () => {
+                if (this.onShopFocusCallback) {
+                    this.onShopFocusCallback(null);
+                }
+            });
         }
     }
 
     onMoveEnd(callback: (bounds: MapBounds) => void): void {
         this.onMoveEndCallback = callback;
+    }
+
+    onShopFocus(callback: (id: string | null) => void): void {
+        this.onShopFocusCallback = callback;
     }
 
     private handleMoveEnd(): void {
@@ -134,16 +153,11 @@ export class MapRenderer {
                     if (this.markers.has(shop.id)) {
                         // Update existing marker
                         const marker = this.markers.get(shop.id)!;
+                        (marker as any).shopId = shop.id; // Ensure ID is attached
                         
-                        // Check if icon needs update (using internal _icon property or just re-setting which is cheap if same ref)
-                        // Leaflet markers have options.icon. Since we use stable references for icons now, strict equality works.
+                        // Check if icon needs update
                         if ((marker as any).options.icon !== targetIcon) {
                            (marker as any).setIcon(targetIcon);
-                           // Re-bind popup to update text (e.g. visited status text)
-                           // Note: re-binding popup on an open popup might close it or update it. 
-                           // Leaflet's bindPopup usually updates the content without closing if it's open, 
-                           // but to be safe we can use setPopupContent if we had the popup instance.
-                           // Simplest is just bindPopup again.
                            marker.bindPopup(`
                                 <b>${shop.name}</b><br>
                                 ${shop.category}<br>
@@ -161,6 +175,8 @@ export class MapRenderer {
                                 ${shop.category}<br>
                                 ${isVisited ? '✅ 已踩點' : '⬜ 未踩點'}
                             `);
+                        
+                        (marker as any).shopId = shop.id; // Attach ID
                         this.markers.set(shop.id, marker);
                     }
                 }
