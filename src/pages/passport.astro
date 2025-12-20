@@ -181,6 +181,7 @@ import '../styles/global.css';
             importData: () => void;
             resetData: () => void;
             locateUser: () => void;
+            panToShop: (lat: number | string, lng: number | string, id?: string) => void;
         }
     }
 
@@ -315,7 +316,9 @@ import '../styles/global.css';
         let isRecommend = false;
 
         if (currentFilter === 'all') {
-            filtered = allShops;
+            // Get center for sorting by distance
+            const center = mapRenderer ? mapRenderer.getCenter() : null;
+            filtered = getFilteredShops('all', allShops, visitedShops, currentBounds, center);
         } else {
             filtered = getFilteredShops(currentFilter, allShops, visitedShops, currentBounds);
             if (currentFilter === 'recommend') isRecommend = true;
@@ -343,7 +346,7 @@ import '../styles/global.css';
             const isHot = popularity >= 800;
 
             const card = document.createElement('div');
-            card.className = `card bg-base-100 shadow-sm hover:shadow-md transition-shadow shop-card ${isVisited ? 'visited' : ''}`;
+            card.className = `card bg-base-100 shadow-sm hover:shadow-md transition-shadow shop-card cursor-pointer ${isVisited ? 'visited' : ''}`;
 
             // Category icons
             let visualIcon = '🇹🇼';
@@ -425,6 +428,14 @@ import '../styles/global.css';
                     </div>
                 </div>
             `;
+            // Attach click event for panning
+            card.addEventListener('click', (e) => {
+                const target = e.target as HTMLElement;
+                // Avoid triggering when clicking buttons or links
+                if (target.closest('button') || target.closest('a')) return;
+                window.panToShop(shop.lat, shop.lng, shop.id);
+            });
+
             container.appendChild(card);
         });
     }
@@ -448,6 +459,24 @@ import '../styles/global.css';
         }
         renderShops();
         updateProgress();
+    }
+
+    // New function to pan map
+    window.panToShop = function(lat: number | string, lng: number | string, id?: string) {
+        const latNum = typeof lat === 'string' ? parseFloat(lat) : lat;
+        const lngNum = typeof lng === 'string' ? parseFloat(lng) : lng;
+
+        if (mapRenderer && !isNaN(latNum) && !isNaN(lngNum)) {
+             mapRenderer.setView([latNum, lngNum], 16);
+             if (id) {
+                 // Slight delay to ensure view set finishes or just for better UX
+                 setTimeout(() => {
+                    if (mapRenderer) mapRenderer.openPopup(id);
+                 }, 300);
+             }
+             // Scroll to map for better UX, center it
+             document.getElementById('map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     function updateProgress() {
@@ -481,10 +510,29 @@ import '../styles/global.css';
         return { title: '新手上路', badgeClass: 'badge-warning' };
     }
 
-    function getFilteredShops(filterType: string, shops: LocalShop[], visitedIds: string[], bounds: MapBounds | null = null): LocalShop[] {
+    function getFilteredShops(filterType: string, shops: LocalShop[], visitedIds: string[], bounds: MapBounds | null = null, center: [number, number] | null = null): LocalShop[] {
         let result: LocalShop[] = [];
         if (filterType === 'all') {
-            result = shops;
+            result = [...shops]; // Copy array to avoid mutating original
+            
+            // Sort by distance if center is available
+            if (center) {
+                const [centerLat, centerLng] = center;
+                result.sort((a, b) => {
+                    const latA = typeof a.lat === 'number' ? a.lat : parseFloat(a.lat as string);
+                    const lngA = typeof a.lng === 'number' ? a.lng : parseFloat(a.lng as string);
+                    const latB = typeof b.lat === 'number' ? b.lat : parseFloat(b.lat as string);
+                    const lngB = typeof b.lng === 'number' ? b.lng : parseFloat(b.lng as string);
+                    
+                    if (isNaN(latA) || isNaN(lngA)) return 1;
+                    if (isNaN(latB) || isNaN(lngB)) return -1;
+                    
+                    const distA = Math.pow(latA - centerLat, 2) + Math.pow(lngA - centerLng, 2);
+                    const distB = Math.pow(latB - centerLat, 2) + Math.pow(lngB - centerLng, 2);
+                    
+                    return distA - distB;
+                });
+            }
         } else if (filterType === 'recommend') {
             const places = getRecommendations(shops as ProcessedPlace[], visitedIds);
             
@@ -544,9 +592,8 @@ import '../styles/global.css';
     function updateMapMarkers() {
         if (!mapRenderer) return;
         
-        // Use the same filtering logic as renderShops so markers match the list
-        // Pass null for bounds to keep all markers visible on the map (better UX for panning)
-        const filtered = getFilteredShops(currentFilter, allShops, visitedShops, null);
+        // Pass null for bounds to keep all markers visible on the map
+        const filtered = getFilteredShops(currentFilter, allShops, visitedShops, null, null);
         mapRenderer.updateMarkers(filtered, visitedShops);
     }
 

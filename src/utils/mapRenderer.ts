@@ -10,11 +10,13 @@ interface LeafletMap {
         getEast(): number;
         getWest(): number;
     };
+    getCenter(): { lat: number; lng: number };
 }
 
 interface LeafletMarker {
     addTo(map: LeafletMap): LeafletMarker;
     bindPopup(content: string): LeafletMarker;
+    openPopup(): LeafletMarker;
 }
 
 // Declare external L
@@ -37,7 +39,7 @@ export interface MapMarkerData {
 
 export class MapRenderer {
     private map: LeafletMap | null = null;
-    private markers: LeafletMarker[] = [];
+    private markers: Map<string, LeafletMarker> = new Map();
     private elementId: string;
     private onMoveEndCallback: ((bounds: MapBounds) => void) | null = null;
 
@@ -87,7 +89,7 @@ export class MapRenderer {
         // Clear existing markers
         const mapInstance = this.map;
         this.markers.forEach(m => mapInstance.removeLayer(m));
-        this.markers = [];
+        this.markers.clear();
 
         // Add new markers
         shops.forEach(shop => {
@@ -105,7 +107,7 @@ export class MapRenderer {
                             ${shop.category}<br>
                             ${isVisited ? '✅ 已踩點' : '⬜ 未踩點'}
                         `);
-                    this.markers.push(marker);
+                    this.markers.set(shop.id, marker);
                 }
             }
         });
@@ -133,7 +135,7 @@ export class MapRenderer {
         }).addTo(this.map)
           .bindPopup('📍 你在這裡');
           
-        this.markers.push(marker); 
+        this.markers.set('current-location', marker); 
     }
 
     getBounds(): MapBounds | null {
@@ -147,9 +149,22 @@ export class MapRenderer {
         };
     }
 
+    getCenter(): [number, number] | null {
+        if (!this.map) return null;
+        const center = this.map.getCenter();
+        return [center.lat, center.lng];
+    }
+
     invalidateSize(): void {
         if (this.map) {
             this.map.invalidateSize();
+        }
+    }
+
+    openPopup(id: string): void {
+        const marker = this.markers.get(id);
+        if (marker) {
+            marker.openPopup();
         }
     }
 }
