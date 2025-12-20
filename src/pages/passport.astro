@@ -142,73 +142,125 @@ import '../styles/global.css';
     </div>
 </footer>
 
-<script is:inline>
-    const DATA_URL = '/byw-mit/gluttony.json';
+<script>
+    import { fetchGluttonyData } from "../utils/api";
+    import { getRecommendations, preprocessPlaces, type ProcessedPlace, type RecommendedPlace, type SimilarShop } from "../utils/recommendations";
+    import { MapRenderer } from "../utils/mapRenderer";
+    import {
+        getVisitedShops,
+        addVisitedShop,
+        removeVisitedShop,
+        saveVisitedShops,
+        getFavoriteShops,
+        toggleFavoriteShop,
+        getUserName,
+        saveUserName,
+        initUserName,
+        resetAllData
+    } from "../utils/storage";
 
-    let allShops = [];
+
+
+    // Extend Window interface for custom global functions
+    declare global {
+        interface Window {
+            setFilter: (category: string, btnElement:  HTMLElement) => void;
+            toggleFavorite: (id: string, btn: HTMLButtonElement) => void;
+            toggleVisit: (id: string) => void;
+            switchTab: (tabName: string) => void;
+            updateUserName: () => void;
+            exportData: () => void;
+            importData: () => void;
+            resetData: () => void;
+        }
+    }
+
+    // Local interface including UI-specific properties
+    interface LocalShop extends ProcessedPlace {
+        id: string;
+        map_url: string;
+        popularity: number;
+        cfScore?: number;        // Optional for recommended shops
+        similarTo?: SimilarShop[];       // Optional for recommended shops
+    }
+
+    interface LeaderboardEntry {
+        rank: number;
+        name: string;
+        visited_count: number;
+        title: string;
+        isUser?: boolean;
+    }
+
+    let allShops: LocalShop[] = [];
     let collectionTitle = ''; // 收藏來源名稱
-    let visitedShops = JSON.parse(localStorage.getItem('visited_shops')) || [];
-    let favoriteShops = JSON.parse(localStorage.getItem('favorite_shops')) || [];
-    let userName = localStorage.getItem('user_name') || '台灣囡仔';
+    let visitedShops: string[] = getVisitedShops();
+    let favoriteShops: string[] = getFavoriteShops();
+    let userName = getUserName();
     let currentFilter = 'recommend';
-    let map = null;
-    let markers = [];
-    let leaderboardData = [];
+    let mapRenderer: MapRenderer | null = null;
+    let leaderboardData: LeaderboardEntry[] = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-        if (!localStorage.getItem('user_name')) {
-            localStorage.setItem('user_name', userName);
-        }
-
+        initUserName();
+        // Sync local variable just in case, though getUserName() already handled it
+        userName = getUserName(); 
         fetchData();
     });
 
+    // ... (fetchData remains mostly unchanged, just variables) ...
+
     async function fetchData() {
         try {
-            const response = await fetch(DATA_URL);
-            if (!response.ok) throw new Error('Failed to fetch data');
-            const data = await response.json();
+            // Fetch data directly
+            const data = await fetchGluttonyData();
 
             if (!data.places || data.places.length === 0) {
-                document.getElementById('loading').innerHTML = '<div class="alert alert-warning"><span>⚠️ 載入成功但沒有資料</span></div>';
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) loadingEl.innerHTML = '<div class="alert alert-warning"><span>⚠️ 載入成功但沒有資料</span></div>';
                 return;
             }
 
             // 儲存收藏來源名稱
             collectionTitle = data.title || '';
 
-            // Map gluttony.json fields to expected shop format
-            allShops = data.places.map(place => ({
-                id: place.place_id,
-                name: place.name,
-                category: place.category,
-                description: place.description || '',
-                map_url: place.url,
-                lat: place.lat,
-                lng: place.lng,
-                popularity: 0,
-                recent_visitors: ''
+            // Pre-process data (parse strings to sets once)
+            const processedPlaces = preprocessPlaces(data.places);
+
+            // Map to local shop format while keeping ProcessedPlace properties
+            allShops = processedPlaces.map(place => ({
+                ...place, // Includes place_id, recent_visitors, visitorSet, visitorCount
+                id: place.place_id, // Adapter for local UI use
+                map_url: place.url, // Adapter for local UI use
+                popularity: place.visitorCount // Use pre-calculated count
             }));
 
             if (allShops.length === 0) {
-                document.getElementById('loading').innerHTML = '<div class="alert alert-warning"><span>⚠️ 資料格式不符</span></div>';
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) loadingEl.innerHTML = '<div class="alert alert-warning"><span>⚠️ 資料格式不符</span></div>';
                 return;
             }
 
-            document.getElementById('loading').style.display = 'none';
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) loadingEl.style.display = 'none';
+
             initMap();
             renderFilters();
             renderShops();
             updateProgress();
             fetchLeaderboard();
         } catch (err) {
-            document.getElementById('loading').innerHTML = `<div class="alert alert-error"><span>❌ 載入失敗: ${err.message || '未知錯誤'}</span></div>`;
+            console.error(err);
+            const errorMessage = err instanceof Error ? err.message : '未知錯誤';
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) loadingEl.innerHTML = `<div class="alert alert-error"><span>❌ 載入失敗: ${errorMessage}</span></div>`;
         }
     }
 
     function renderFilters() {
         const categories = ['全部', '推薦', '熱門', ...new Set(allShops.map(s => s.category))];
         const container = document.getElementById('filter-container');
+        if (!container) return; // Null check
 
         let html = '';
         categories.forEach(cat => {
@@ -231,7 +283,7 @@ import '../styles/global.css';
         container.innerHTML = html;
     }
 
-    window.setFilter = function(category, btnElement) {
+    window.setFilter = function(category: string, btnElement: HTMLElement) {
         currentFilter = category;
         document.querySelectorAll('#filter-container .btn').forEach(b => {
             b.classList.remove('btn-primary');
@@ -243,169 +295,20 @@ import '../styles/global.css';
         updateMapMarkers();
     }
 
-    // Build shop visitor sets (cached for performance)
-    function getShopVisitorMap() {
-        const shopVisitorMap = new Map(); // shop_id -> Set of visitors
-        allShops.forEach(shop => {
-            const visitors = shop.recent_visitors
-                ? new Set(shop.recent_visitors.split(',').map(v => v.trim()).filter(v => v))
-                : new Set();
-            shopVisitorMap.set(shop.id, visitors);
-        });
-        return shopVisitorMap;
-    }
-
-    // Item-to-Item CF: calculate similarity between two shops based on shared visitors
-    function calcItemSimilarity(visitorsA, visitorsB) {
-        if (visitorsA.size === 0 || visitorsB.size === 0) return 0;
-        const intersection = [...visitorsA].filter(v => visitorsB.has(v)).length;
-        const union = new Set([...visitorsA, ...visitorsB]).size;
-        return union > 0 ? intersection / union : 0;
-    }
-
-    // User-based CF: find similar users
-    function getUserBasedScores(userShopMap, myShopsSet) {
-        const shopScores = new Map();
-
-        userShopMap.forEach((userShops) => {
-            const intersection = [...myShopsSet].filter(id => userShops.has(id)).length;
-            const union = new Set([...myShopsSet, ...userShops]).size;
-            const similarity = union > 0 ? intersection / union : 0;
-
-            if (similarity > 0) {
-                userShops.forEach(shopId => {
-                    if (!myShopsSet.has(shopId)) {
-                        const current = shopScores.get(shopId) || 0;
-                        shopScores.set(shopId, current + similarity);
-                    }
-                });
-            }
-        });
-
-        return shopScores;
-    }
-
-    // Item-to-Item CF: find similar shops to what user visited
-    // Returns { scores: Map, similarTo: Map } where similarTo maps shopId -> [{ visitedId, visitedName, similarity }]
-    function getItemBasedScores(shopVisitorMap, myShopsSet) {
-        const shopScores = new Map();
-        const similarTo = new Map(); // Track which visited shops contributed
-
-        // For each shop user visited, find similar unvisited shops
-        myShopsSet.forEach(visitedId => {
-            const visitedVisitors = shopVisitorMap.get(visitedId) || new Set();
-            const visitedShop = allShops.find(s => s.id === visitedId);
-
-            allShops.forEach(shop => {
-                if (myShopsSet.has(shop.id)) return; // Skip already visited
-
-                const shopVisitors = shopVisitorMap.get(shop.id) || new Set();
-                const similarity = calcItemSimilarity(visitedVisitors, shopVisitors);
-
-                if (similarity > 0) {
-                    const current = shopScores.get(shop.id) || 0;
-                    shopScores.set(shop.id, current + similarity);
-
-                    // Track similar shops
-                    if (!similarTo.has(shop.id)) {
-                        similarTo.set(shop.id, []);
-                    }
-                    similarTo.get(shop.id).push({
-                        visitedId,
-                        visitedName: visitedShop?.name || visitedId,
-                        similarity
-                    });
-                }
-            });
-        });
-
-        // Sort similarTo by similarity for each shop
-        similarTo.forEach((items) => {
-            items.sort((a, b) => b.similarity - a.similarity);
-        });
-
-        return { scores: shopScores, similarTo };
-    }
-
-    // Hybrid Collaborative Filtering: combine user-based and item-based
-    function getRecommendations() {
-        if (visitedShops.length === 0) {
-            // Cold start: return popular shops
-            return allShops
-                .filter(s => !visitedShops.includes(s.id))
-                .sort((a, b) => (parseInt(b.popularity) || 0) - (parseInt(a.popularity) || 0))
-                .slice(0, 10);
-        }
-
-        const myShopsSet = new Set(visitedShops);
-        const shopVisitorMap = getShopVisitorMap();
-
-        // Build user-shop matrix
-        const userShopMap = new Map();
-        allShops.forEach(shop => {
-            const visitors = shop.recent_visitors ? shop.recent_visitors.split(',').map(v => v.trim()).filter(v => v) : [];
-            visitors.forEach(user => {
-                if (!userShopMap.has(user)) {
-                    userShopMap.set(user, new Set());
-                }
-                userShopMap.get(user).add(shop.id);
-            });
-        });
-
-        // Get scores from both methods
-        const userBasedScores = getUserBasedScores(userShopMap, myShopsSet);
-        const { scores: itemBasedScores, similarTo } = getItemBasedScores(shopVisitorMap, myShopsSet);
-
-        // Combine scores (weighted: 0.5 user-based + 0.5 item-based)
-        const combinedScores = new Map();
-        const allShopIds = new Set([...userBasedScores.keys(), ...itemBasedScores.keys()]);
-
-        allShopIds.forEach(shopId => {
-            const userScore = userBasedScores.get(shopId) || 0;
-            const itemScore = itemBasedScores.get(shopId) || 0;
-            combinedScores.set(shopId, 0.5 * userScore + 0.5 * itemScore);
-        });
-
-        // Sort and return top recommendations
-        const recommended = [...combinedScores.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10)
-            .map(([shopId, score]) => {
-                const shop = allShops.find(s => s.id === shopId);
-                const similar = similarTo.get(shopId) || [];
-                return { ...shop, cfScore: score, similarTo: similar };
-            })
-            .filter(s => s.id);
-
-        // If not enough recommendations, fill with popular unvisited shops
-        if (recommended.length < 5) {
-            const popular = allShops
-                .filter(s => !visitedShops.includes(s.id) && !recommended.find(r => r.id === s.id))
-                .sort((a, b) => (parseInt(b.popularity) || 0) - (parseInt(a.popularity) || 0))
-                .slice(0, 5 - recommended.length);
-            recommended.push(...popular);
-        }
-
-        return recommended;
-    }
 
     function renderShops() {
         const container = document.getElementById('shop-list');
+        if (!container) return; // Null check
         container.innerHTML = '';
 
-        let filtered = [];
+        let filtered: LocalShop[] = []; // Explicit type
         let isRecommend = false;
 
         if (currentFilter === 'all') {
             filtered = allShops;
-        } else if (currentFilter === 'recommend') {
-            filtered = getRecommendations();
-            isRecommend = true;
-        } else if (currentFilter === 'hot') {
-            filtered = allShops.filter(s => (parseInt(s.popularity) || 0) >= 800);
-            filtered.sort((a, b) => (parseInt(b.popularity) || 0) - (parseInt(a.popularity) || 0));
         } else {
-            filtered = allShops.filter(s => s.category === currentFilter);
+            filtered = getFilteredShops(currentFilter, allShops, visitedShops);
+            if (currentFilter === 'recommend') isRecommend = true;
         }
 
         if(filtered.length === 0) {
@@ -426,7 +329,7 @@ import '../styles/global.css';
         filtered.forEach(shop => {
             const isVisited = visitedShops.includes(shop.id);
             const isFavorite = favoriteShops.includes(shop.id);
-            const popularity = parseInt(shop.popularity) || 0;
+            const popularity = shop.popularity || 0;
             const isHot = popularity >= 800;
 
             const card = document.createElement('div');
@@ -440,7 +343,7 @@ import '../styles/global.css';
             else if (shop.category === '書店') visualIcon = '📚';
             else if (shop.category === '生活') visualIcon = '🏠';
 
-            const visitors = shop.recent_visitors ? shop.recent_visitors.split(',').map(v => v.trim()).filter(v => v) : [];
+            const visitors = shop.visitors || [];
             const visitorsHtml = visitors.length > 0
                 ? `<div class="flex flex-wrap gap-1 mt-2">
                     <span class="text-xs text-base-content/50">去過：</span>
@@ -452,7 +355,7 @@ import '../styles/global.css';
             // Item-to-Item: show which visited shops are similar
             // Social Counts
             const visitCount = visitors.length;
-            const collectCount = parseInt(shop.popularity) || 0;
+            const collectCount = shop.popularity || 0;
             
             const statsHtml = `
                 <div class="flex gap-3 text-xs text-base-content/60 mt-2 mb-1">
@@ -516,13 +419,8 @@ import '../styles/global.css';
         });
     }
 
-    window.toggleFavorite = function(id, btn) {
-        if (favoriteShops.includes(id)) {
-            favoriteShops = favoriteShops.filter(sid => sid !== id);
-        } else {
-            favoriteShops.push(id);
-        }
-        localStorage.setItem('favorite_shops', JSON.stringify(favoriteShops));
+    window.toggleFavorite = function(id: string, btn: HTMLButtonElement) {
+        favoriteShops = toggleFavoriteShop(id);
         
         // Optimistic UI update instead of full re-render for better UX
         const isFav = favoriteShops.includes(id);
@@ -532,13 +430,12 @@ import '../styles/global.css';
         btn.innerText = isFav ? '❤' : '♡';
     }
 
-    window.toggleVisit = function(id) {
+    window.toggleVisit = function(id: string) {
         if (visitedShops.includes(id)) {
-            visitedShops = visitedShops.filter(sid => sid !== id);
+            visitedShops = removeVisitedShop(id);
         } else {
-            visitedShops.push(id);
+            visitedShops = addVisitedShop(id);
         }
-        localStorage.setItem('visited_shops', JSON.stringify(visitedShops));
         renderShops();
         updateProgress();
     }
@@ -548,65 +445,82 @@ import '../styles/global.css';
         const current = visitedShops.length;
         const percent = total === 0 ? 0 : Math.round((current / total) * 100);
 
-        document.getElementById('progress-text').innerText = `踩點進度：${current} / ${total}`;
-        document.getElementById('progress-fill').value = percent;
+        const { title, badgeClass } = getRankTitle(current, total);
 
-        let title = '新手上路';
-        let badgeClass = 'badge-warning';
-        if (percent > 20) { title = '熱心參與者'; badgeClass = 'badge-info'; }
-        if (percent > 50) { title = '台派中堅'; badgeClass = 'badge-primary'; }
-        if (percent > 80) { title = '台灣守護神'; badgeClass = 'badge-secondary'; }
-        if (percent === 100) { title = '制霸全台！'; badgeClass = 'badge-success'; }
+        document.getElementById('progress-text')!.innerText = `踩點進度：${current} / ${total}`;
+        const progressFill = document.getElementById('progress-fill') as HTMLProgressElement;
+        if (progressFill) progressFill.value = percent;
 
         const levelEl = document.getElementById('level-text');
-        levelEl.innerText = title;
-        levelEl.className = `badge ${badgeClass}`;
+        if (levelEl) {
+            levelEl.innerText = title;
+            levelEl.className = `badge ${badgeClass}`;
+        }
+    }
+
+    function getRankTitle(visitedCount: number, totalCount: number) {
+        if (totalCount === 0) return { title: '新手上路', badgeClass: 'badge-warning' };
+        
+        const percent = Math.round((visitedCount / totalCount) * 100);
+        
+        if (percent === 100) return { title: '制霸全台！', badgeClass: 'badge-success' };
+        if (percent > 80) return { title: '台灣守護神', badgeClass: 'badge-secondary' };
+        if (percent > 50) return { title: '台派中堅', badgeClass: 'badge-primary' };
+        if (percent > 20) return { title: '熱心參與者', badgeClass: 'badge-info' };
+        
+        return { title: '新手上路', badgeClass: 'badge-warning' };
+    }
+
+    function getFilteredShops(filterType: string, shops: LocalShop[], visitedIds: string[]): LocalShop[] {
+        let result: LocalShop[] = [];
+        if (filterType === 'all') {
+            result = shops;
+        } else if (filterType === 'recommend') {
+            const places = getRecommendations(shops as ProcessedPlace[], visitedIds);
+            
+            // Map returns (LocalShop | null)[]
+            const mapped: (LocalShop | null)[] = places.map((s): LocalShop | null => {
+                 // Determine if s is RecommendedPlace to access cfScore/similarTo
+                 const rec = s as RecommendedPlace;
+                 const existing = shops.find(shop => shop.place_id === s.place_id);
+                 if (!existing) return null;
+                 
+                 return {
+                    ...existing,
+                    cfScore: rec.cfScore,
+                    similarTo: rec.similarTo
+                 };
+            });
+            
+            result = mapped.filter((s): s is LocalShop => s !== null);
+
+        } else if (filterType === 'hot') {
+            result = shops.filter(s => s.popularity >= 800);
+            result.sort((a, b) => b.popularity - a.popularity);
+        } else {
+            result = shops.filter(s => s.category === filterType);
+        }
+        return result;
     }
 
     function initMap() {
-        if (map) return;
-        map = L.map('map').setView([23.97565, 120.9738819], 7);
-
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
-            subdomains: 'abcd',
-            maxZoom: 20
-        }).addTo(map);
-
+        if (mapRenderer) return;
+        mapRenderer = new MapRenderer('map');
+        mapRenderer.init([23.97565, 120.9738819], 7);
         updateMapMarkers();
     }
 
     function updateMapMarkers() {
-        if (!map) return;
-
-        markers.forEach(m => map.removeLayer(m));
-        markers = [];
-
+        if (!mapRenderer) return;
+        
         let filtered;
         if (currentFilter === 'all') {
             filtered = allShops;
-        } else if (currentFilter === 'recommend') {
-            filtered = getRecommendations();
-        } else if (currentFilter === 'hot') {
-            filtered = allShops.filter(s => (parseInt(s.popularity) || 0) >= 800);
         } else {
-            filtered = allShops.filter(s => s.category === currentFilter);
+             filtered = getFilteredShops(currentFilter, allShops, visitedShops);
         }
 
-        filtered.forEach(shop => {
-            if (shop.lat && shop.lng) {
-                const isVisited = visitedShops.includes(shop.id);
-
-                const marker = L.marker([parseFloat(shop.lat), parseFloat(shop.lng)])
-                    .addTo(map)
-                    .bindPopup(`
-                        <b>${shop.name}</b><br>
-                        ${shop.category}<br>
-                        ${isVisited ? '✅ 已踩點' : '⬜ 未踩點'}
-                    `);
-                markers.push(marker);
-            }
-        });
+        mapRenderer.updateMarkers(filtered, visitedShops);
     }
 
     function fetchLeaderboard() {
@@ -617,19 +531,20 @@ import '../styles/global.css';
 
     function renderLeaderboard() {
         const tbody = document.getElementById('leaderboard-body');
+        if (!tbody) return;
         tbody.innerHTML = '';
 
         let currentUser = {
             rank: 0,
             name: userName + ' (我)',
             visited_count: visitedShops.length,
-            title: document.getElementById('level-text').innerText,
+            title: document.getElementById('level-text')?.innerText || '新手上路',
             isUser: true
         };
 
         let combined = leaderboardData.map(d => ({
             ...d,
-            visited_count: parseInt(d.visited_count) || 0
+            visited_count: d.visited_count || 0
         }));
 
         combined.push(currentUser);
@@ -658,20 +573,19 @@ import '../styles/global.css';
             tbody.appendChild(tr);
         });
 
-        document.getElementById('user-rank-info').innerText = `你的目前排名：第 ${userRank} 名`;
+        const userRankInfo = document.getElementById('user-rank-info');
+        if (userRankInfo) userRankInfo.innerText = `你的目前排名：第 ${userRank} 名`;
 
-        // Shop leaderboard
         const shopTbody = document.getElementById('shop-leaderboard-body');
-        shopTbody.innerHTML = '';
+        if (shopTbody) {
+            shopTbody.innerHTML = '';
+            let sortedShops = [...allShops].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+            let topShops = sortedShops.slice(0, 5);
 
-        let sortedShops = [...allShops].sort((a, b) => (parseInt(b.popularity) || 0) - (parseInt(a.popularity) || 0));
-        let topShops = sortedShops.slice(0, 5);
-
-        topShops.forEach((shop, index) => {
-            const rank = index + 1;
-            const tr = document.createElement('tr');
-
-            let rankBadge = `#${rank}`;
+            topShops.forEach((shop, index) => {
+                const rank = index + 1;
+                const tr = document.createElement('tr');
+                let rankBadge = `#${rank}`;
             if (rank === 1) rankBadge = '🥇';
             if (rank === 2) rankBadge = '🥈';
             if (rank === 3) rankBadge = '🥉';
@@ -684,45 +598,48 @@ import '../styles/global.css';
             `;
             shopTbody.appendChild(tr);
         });
+    }
 
         // Comparison table
         const compTbody = document.getElementById('comparison-body');
-        compTbody.innerHTML = '';
+        if (compTbody) {
+            compTbody.innerHTML = '';
 
-        allShops.forEach(shop => {
-            const isVisited = visitedShops.includes(shop.id);
-            const visitors = shop.recent_visitors ? shop.recent_visitors.split(',') : [];
+            allShops.forEach(shop => {
+                const isVisited = visitedShops.includes(shop.id);
+                const visitors = shop.visitors || [];
 
-            const tr = document.createElement('tr');
-            if (isVisited) tr.className = 'bg-success/10';
+                const tr = document.createElement('tr');
+                if (isVisited) tr.className = 'bg-success/10';
 
-            let tagsHtml = visitors.length > 0
-                ? visitors.map(v => `<span class="badge badge-ghost badge-sm mr-1">${v.trim()}</span>`).join('')
-                : '<span class="text-base-content/40 text-sm">尚無資料</span>';
+                let tagsHtml = visitors.length > 0
+                    ? visitors.map(v => `<span class="badge badge-ghost badge-sm mr-1">${v.trim()}</span>`).join('')
+                    : '<span class="text-base-content/40 text-sm">尚無資料</span>';
 
-            tr.innerHTML = `
-                <td>${shop.name}</td>
-                <td><span class="badge badge-outline badge-sm">${shop.category}</span></td>
-                <td>${isVisited ? '<span class="text-success">✅ 已攻略</span>' : '<span class="text-base-content/40">⬜ 未攻略</span>'}</td>
-                <td>${tagsHtml}</td>
-            `;
-            compTbody.appendChild(tr);
-        });
+                tr.innerHTML = `
+                    <td>${shop.name}</td>
+                    <td><span class="badge badge-outline badge-sm">${shop.category}</span></td>
+                    <td>${isVisited ? '<span class="text-success">✅ 已攻略</span>' : '<span class="text-base-content/40">⬜ 未攻略</span>'}</td>
+                    <td>${tagsHtml}</td>
+                `;
+                compTbody.appendChild(tr);
+            });
+        }
     }
 
-    window.switchTab = function(tabName) {
-        document.getElementById('tab-passport').classList.remove('tab-active');
-        document.getElementById('tab-leaderboard').classList.remove('tab-active');
+    window.switchTab = function(tabName: string) {
+        document.getElementById('tab-passport')?.classList.remove('tab-active');
+        document.getElementById('tab-leaderboard')?.classList.remove('tab-active');
 
         if (tabName === 'passport') {
-            document.getElementById('tab-passport').classList.add('tab-active');
-            document.getElementById('passport-view').classList.remove('hidden');
-            document.getElementById('leaderboard-view').classList.add('hidden');
-            if (map) map.invalidateSize();
+            document.getElementById('tab-passport')?.classList.add('tab-active');
+            document.getElementById('passport-view')?.classList.remove('hidden');
+            document.getElementById('leaderboard-view')?.classList.add('hidden');
+            if (mapRenderer) mapRenderer.invalidateSize();
         } else {
-            document.getElementById('tab-leaderboard').classList.add('tab-active');
-            document.getElementById('passport-view').classList.add('hidden');
-            document.getElementById('leaderboard-view').classList.remove('hidden');
+            document.getElementById('tab-leaderboard')?.classList.add('tab-active');
+            document.getElementById('passport-view')?.classList.add('hidden');
+            document.getElementById('leaderboard-view')?.classList.remove('hidden');
             renderLeaderboard();
         }
     }
@@ -731,13 +648,13 @@ import '../styles/global.css';
         const newName = prompt('請輸入你的新暱稱：', userName);
         if (newName && newName.trim() !== '') {
             userName = newName.trim();
-            localStorage.setItem('user_name', userName);
+            saveUserName(userName);
             renderLeaderboard();
         }
     }
 
     window.exportData = function() {
-        const data = localStorage.getItem('visited_shops');
+        const data = localStorage.getItem('visited_shops') || '[]';
         prompt("請複製以下代碼，在另一支手機匯入：", data);
     }
 
@@ -747,8 +664,13 @@ import '../styles/global.css';
             try {
                 const parsed = JSON.parse(data);
                 if(Array.isArray(parsed)) {
+                    // Logic was to persist, which effectively is handled by our addVisitedShop/saveVisitedShop 
+                    // but we need to bulk replace. The user implementation was replacing the entire array.
+                    // We don't have a bulk set function exposed, let me quickly fix inline or add to util? 
+                    // Actually, for importData we should probably add a `setVisitedShops` to util or just direct usage here is technically 'storage' logic 
+                    // but let's stick to using the utility. Wait, the utility `saveVisitedShops` IS exposed.
                     visitedShops = parsed;
-                    localStorage.setItem('visited_shops', JSON.stringify(visitedShops));
+                    saveVisitedShops(visitedShops);
                     location.reload();
                 } else {
                     alert('格式錯誤');
@@ -761,7 +683,7 @@ import '../styles/global.css';
 
     window.resetData = function() {
         if(confirm('確定要清空所有紀錄嗎？這無法復原喔！')) {
-            localStorage.removeItem('visited_shops');
+            resetAllData();
             location.reload();
         }
     }
