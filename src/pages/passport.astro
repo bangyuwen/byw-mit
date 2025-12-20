@@ -30,13 +30,13 @@ import '../styles/global.css';
 <!-- Navbar -->
 <div class="navbar bg-base-100 sticky top-0 z-50 shadow-sm">
     <div class="navbar-center flex-1 justify-center">
-        <span class="text-xl font-bold">🍜 美食踩點護照</span>
+        <span class="text-xl font-bold">✨ 優質店家護照</span>
     </div>
 </div>
 
 <!-- Progress Section -->
 <div class="max-w-4xl mx-auto p-4">
-    <div class="card bg-base-100 shadow-sm">
+    <div class="card bg-base-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onclick="showVisited()" title="點擊查看已去過的店家">
         <div class="card-body p-4">
             <div class="flex justify-between items-center text-sm">
                 <span id="progress-text" class="font-medium">踩點進度：0 / 0</span>
@@ -148,6 +148,7 @@ import '../styles/global.css';
     <div>
         <p>資料來源：社群共編 | 系統製作：Gemini 協助開發</p>
         <div class="flex gap-4 mt-2">
+            <a href="https://github.com/bangyuwen/byw-twproduct/issues/new?template=shop_update.md" target="_blank" class="link link-hover">提交變更</a>
             <button class="link link-hover" onclick="exportData()">匯出紀錄</button>
             <button class="link link-hover" onclick="importData()">匯入紀錄</button>
             <button class="link link-hover text-error" onclick="resetData()">重置</button>
@@ -177,7 +178,8 @@ import '../styles/global.css';
     // Extend Window interface for custom global functions
     declare global {
         interface Window {
-            setFilter: (category: string, btnElement:  HTMLElement) => void;
+            setFilter: (category: string, btnElement:  HTMLElement | null) => void;
+            showVisited: () => void;
             toggleFavorite: (id: string, btn: HTMLButtonElement) => void;
             toggleVisit: (id: string) => void;
             switchTab: (tabName: string) => void;
@@ -300,17 +302,24 @@ import '../styles/global.css';
         container.innerHTML = html;
     }
 
-    window.setFilter = function(category: string, btnElement: HTMLElement) {
+    window.setFilter = function(category: string, btnElement: HTMLElement | null) {
         currentFilter = category;
         selectedShopId = null; // Reset selection on filter change
         document.querySelectorAll('#filter-container .btn').forEach(b => {
-            b.classList.remove('btn-primary');
-            b.classList.add('btn-ghost');
+             b.classList.remove('btn-primary');
+             b.classList.add('btn-ghost');
         });
-        btnElement.classList.remove('btn-ghost');
-        btnElement.classList.add('btn-primary');
+        
+        if (btnElement) {
+            btnElement.classList.remove('btn-ghost');
+            btnElement.classList.add('btn-primary');
+        }
         renderShops();
         updateMapMarkers();
+    }
+
+    window.showVisited = function() {
+        window.setFilter('visited', null);
     }
 
 
@@ -578,6 +587,8 @@ import '../styles/global.css';
         } else if (filterType === 'hot') {
             result = shops.filter(s => s.popularity >= 800);
             result.sort((a, b) => b.popularity - a.popularity);
+        } else if (filterType === 'visited') {
+            result = shops.filter(s => visitedIds.includes(s.id));
         } else {
             result = shops.filter(s => s.category === filterType);
         }
