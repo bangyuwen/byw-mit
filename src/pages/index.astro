@@ -47,23 +47,7 @@ const recommendations = (productsData as Product[]).filter(p => p.is_recommender
 const selectedRecommendations = recommendations.sort(() => 0.5 - Math.random()).slice(0, 3);
 
 // Helper to get image for category (Placeholders as we don't have real product images)
-function getCategoryImage(category: string): string {
-    const map: Record<string, string> = {
-        '3C': 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070', // Tech
-        '家電': 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=2070', // Home Appliance
-        '汽機車': 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2070', // Car
-        '食品/保健': 'https://images.unsplash.com/photo-1626804475297-411d863b67ab?q=80&w=2670', // Food
-        '生活日用': 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?q=80&w=2070', // Daily
-        '文具/手作': 'https://images.unsplash.com/photo-1456735190827-d1262f71b8a6?q=80&w=2068', // Stationery
-        '傢俱寢飾': 'https://images.unsplash.com/photo-1540574163026-643ea20ade25?q=80&w=2070', // Furniture
-        '寵物': 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?q=80&w=2086', // Pet
-        '美妝個清': 'https://images.unsplash.com/photo-1596462502278-27bfdd403348?q=80&w=2574', // Beauty
-        '衛浴': 'https://images.unsplash.com/photo-1584622050111-993a426fbf0a?q=80&w=2070', // Bath
-        '運動/戶外': 'https://images.unsplash.com/photo-1551632811-561732d1e306?q=80&w=2670', // Outdoor
-        '服飾時尚': 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070', // Fashion
-    };
-    return map[category] || 'https://images.unsplash.com/photo-1532453288672-3a27e9be9efd?q=80&w=2564'; // Default
-}
+
 
 // Helper to get broader category image (for Bento Grid)
 
@@ -198,7 +182,7 @@ function getCategoryImage(category: string): string {
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-12 border-t border-black/10">
-                {selectedRecommendations.map((product, index) => (
+                {selectedRecommendations.map((product) => (
                 <div class="pt-8 group">
                     <div class="mb-6">
                         <span class="inline-block px-2 py-1 border border-gray-200 text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-4">{product.category}</span>
