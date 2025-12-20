@@ -1356,7 +1356,8 @@
       "lat": 25.046152499999998,
       "lng": 121.5331372,
       "category": "美食",
-      "city": "臺北市"
+      "city": "臺北市",
+      "permanently_closed": true
     },
     {
       "name": "傑飛貿易股份有限公司",

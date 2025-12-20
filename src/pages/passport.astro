@@ -503,9 +503,10 @@ import '../styles/global.css';
             const isFavorite = favoriteShops.includes(shop.id);
             const popularity = shop.popularity || 0;
             const isHot = popularity >= 800;
+            const isClosed = shop.permanently_closed; // Check closed status
 
             const card = document.createElement('div');
-            card.className = `card bg-base-100 shadow-sm hover:shadow-md transition-shadow shop-card cursor-pointer ${isVisited ? 'visited' : ''}`;
+            card.className = `card bg-base-100 shadow-sm hover:shadow-md transition-shadow shop-card cursor-pointer ${isVisited ? 'visited' : ''} ${isClosed ? 'grayscale opacity-70' : ''}`;
 
             // Category icons
             let visualIcon = '🇹🇼';
@@ -564,6 +565,7 @@ import '../styles/global.css';
                                 ${shop.name}
                                 ${isHot ? '<span class="text-warning text-sm">🔥</span>' : ''}
                                 ${showRecommendBadge ? '<span class="badge badge-primary badge-xs ml-1">推薦</span>' : ''}
+                                ${isClosed ? '<span class="badge badge-neutral badge-xs ml-1">永久歇業</span>' : ''}
                             </h3>
                             <span class="text-xs text-base-content/50">${shop.category} · ${collectionTitle}</span>
                         </div>

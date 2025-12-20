@@ -9,6 +9,7 @@ export interface Place {
     recent_visitors?: string;
     county?: string;
     city?: string;
+    permanently_closed?: boolean;
 }
 
 export interface GluttonyData {
