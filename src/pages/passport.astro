@@ -153,7 +153,7 @@ import '../styles/global.css';
 <script>
     import { fetchGluttonyData } from "../utils/api";
     import { getRecommendations, preprocessPlaces, type ProcessedPlace, type RecommendedPlace, type SimilarShop } from "../utils/recommendations";
-    import { MapRenderer } from "../utils/mapRenderer";
+    import { MapRenderer, type MapBounds } from "../utils/mapRenderer";
     import {
         getVisitedShops,
         addVisitedShop,
@@ -209,6 +209,7 @@ import '../styles/global.css';
     let currentFilter = 'recommend';
     let mapRenderer: MapRenderer | null = null;
     let leaderboardData: LeaderboardEntry[] = [];
+    let currentBounds: MapBounds | null = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         initUserName();
@@ -316,7 +317,7 @@ import '../styles/global.css';
         if (currentFilter === 'all') {
             filtered = allShops;
         } else {
-            filtered = getFilteredShops(currentFilter, allShops, visitedShops);
+            filtered = getFilteredShops(currentFilter, allShops, visitedShops, currentBounds);
             if (currentFilter === 'recommend') isRecommend = true;
         }
 
@@ -480,7 +481,7 @@ import '../styles/global.css';
         return { title: '新手上路', badgeClass: 'badge-warning' };
     }
 
-    function getFilteredShops(filterType: string, shops: LocalShop[], visitedIds: string[]): LocalShop[] {
+    function getFilteredShops(filterType: string, shops: LocalShop[], visitedIds: string[], bounds: MapBounds | null = null): LocalShop[] {
         let result: LocalShop[] = [];
         if (filterType === 'all') {
             result = shops;
@@ -509,6 +510,19 @@ import '../styles/global.css';
         } else {
             result = shops.filter(s => s.category === filterType);
         }
+
+        if (bounds) {
+            result = result.filter(s => {
+                const lat = typeof s.lat === 'number' ? s.lat : parseFloat(s.lat as string);
+                const lng = typeof s.lng === 'number' ? s.lng : parseFloat(s.lng as string);
+                if (isNaN(lat) || isNaN(lng)) return false;
+                return lat <= bounds.north &&
+                       lat >= bounds.south &&
+                       lng <= bounds.east &&
+                       lng >= bounds.west;
+            });
+        }
+
         return result;
     }
 
@@ -516,19 +530,23 @@ import '../styles/global.css';
         if (mapRenderer) return;
         mapRenderer = new MapRenderer('map');
         mapRenderer.init([23.97565, 120.9738819], 7);
+        // Initialize bounds immediately
+        currentBounds = mapRenderer.getBounds();
+
+        mapRenderer.onMoveEnd((bounds) => {
+            currentBounds = bounds;
+            renderShops();
+            updateMapMarkers();
+        });
         updateMapMarkers();
     }
 
     function updateMapMarkers() {
         if (!mapRenderer) return;
         
-        let filtered;
-        if (currentFilter === 'all') {
-            filtered = allShops;
-        } else {
-             filtered = getFilteredShops(currentFilter, allShops, visitedShops);
-        }
-
+        // Use the same filtering logic as renderShops so markers match the list
+        // Pass null for bounds to keep all markers visible on the map (better UX for panning)
+        const filtered = getFilteredShops(currentFilter, allShops, visitedShops, null);
         mapRenderer.updateMarkers(filtered, visitedShops);
     }
 

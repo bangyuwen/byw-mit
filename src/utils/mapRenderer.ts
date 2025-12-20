@@ -3,6 +3,13 @@ interface LeafletMap {
     setView(center: [number, number], zoom: number): LeafletMap;
     removeLayer(layer: any): void;
     invalidateSize(): void;
+    on(event: string, fn: () => void): void;
+    getBounds(): {
+        getNorth(): number;
+        getSouth(): number;
+        getEast(): number;
+        getWest(): number;
+    };
 }
 
 interface LeafletMarker {
@@ -12,6 +19,13 @@ interface LeafletMarker {
 
 // Declare external L
 declare const L: any;
+
+export interface MapBounds {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+}
 
 export interface MapMarkerData {
     lat: string | number;
@@ -25,6 +39,7 @@ export class MapRenderer {
     private map: LeafletMap | null = null;
     private markers: LeafletMarker[] = [];
     private elementId: string;
+    private onMoveEndCallback: ((bounds: MapBounds) => void) | null = null;
 
     constructor(elementId: string) {
         this.elementId = elementId;
@@ -43,6 +58,27 @@ export class MapRenderer {
             subdomains: 'abcd',
             maxZoom: 20
         }).addTo(this.map);
+
+        if (this.map) {
+            this.map.on('moveend', () => {
+                this.handleMoveEnd();
+            });
+        }
+    }
+
+    onMoveEnd(callback: (bounds: MapBounds) => void): void {
+        this.onMoveEndCallback = callback;
+    }
+
+    private handleMoveEnd(): void {
+        if (!this.map || !this.onMoveEndCallback) return;
+        const bounds = this.map.getBounds();
+        this.onMoveEndCallback({
+            north: bounds.getNorth(),
+            south: bounds.getSouth(),
+            east: bounds.getEast(),
+            west: bounds.getWest()
+        });
     }
 
     updateMarkers(shops: any[], visitedShops: string[]): void {
@@ -97,16 +133,18 @@ export class MapRenderer {
         }).addTo(this.map)
           .bindPopup('📍 你在這裡');
           
-        this.markers.push(marker); // Track it so it gets cleared on updates if we want, or manage separately. 
-        // Note: In current logic, updateMarkers clears *all* markers in this.markers. 
-        // If we want this to persist across filter changes, we might need a separate track.
-        // For now, let's treat it as a temporary marker that might be cleared if filters change, 
-        // or we can add it to a separate layer.
-        // Given the simplicity, let's just let it be cleared if user changes filters, 
-        // or re-add it if we had state. 
-        // BETTER APPROACH: Don't add to this.markers if we don't want it cleared by updateMarkers.
-        // But updateMarkers clears everything. Let's just add it to map directly and maybe track in a separate property if we needed to remove it.
-        // For this task, keeping it simples.
+        this.markers.push(marker); 
+    }
+
+    getBounds(): MapBounds | null {
+        if (!this.map) return null;
+        const bounds = this.map.getBounds();
+        return {
+            north: bounds.getNorth(),
+            south: bounds.getSouth(),
+            east: bounds.getEast(),
+            west: bounds.getWest()
+        };
     }
 
     invalidateSize(): void {
