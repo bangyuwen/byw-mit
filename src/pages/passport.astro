@@ -34,23 +34,11 @@ import '../styles/global.css';
     </div>
 </div>
 
-<!-- Progress Section -->
-<div class="max-w-4xl mx-auto p-4">
-    <div class="card bg-base-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onclick="showVisited()" title="點擊查看已去過的店家">
-        <div class="card-body p-4">
-            <div class="flex justify-between items-center text-sm">
-                <span id="progress-text" class="font-medium">踩點進度：0 / 0</span>
-                <span id="level-text" class="badge badge-warning">新手上路</span>
-            </div>
-            <progress id="progress-fill" class="progress progress-success w-full" value="0" max="100"></progress>
-        </div>
-    </div>
-</div>
-
 <!-- Tabs -->
-<div class="max-w-4xl mx-auto px-4">
+<div class="max-w-4xl mx-auto px-4 mt-6">
     <div role="tablist" class="tabs tabs-bordered">
         <a role="tab" class="tab tab-active" id="tab-passport" onclick="switchTab('passport')">踩點護照</a>
+        <a role="tab" class="tab" id="tab-progress" onclick="switchTab('progress')">踩點進度</a>
         <a role="tab" class="tab" id="tab-leaderboard" onclick="switchTab('leaderboard')">排行榜</a>
     </div>
 </div>
@@ -80,6 +68,45 @@ import '../styles/global.css';
 
     <!-- Shop Grid -->
     <div id="shop-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    </div>
+</div>
+
+<!-- Progress View -->
+<div id="progress-view" class="hidden max-w-4xl mx-auto p-4">
+    <div class="card bg-base-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onclick="showVisited()" title="點擊查看已去過的店家">
+        <div class="card-body p-4">
+            <div class="flex justify-between items-center text-sm">
+                <span id="progress-text" class="font-medium">踩點進度：0 / 0</span>
+                <span id="level-text" class="badge badge-warning">新手上路</span>
+            </div>
+            <progress id="progress-fill" class="progress progress-success w-full" value="0" max="100"></progress>
+        </div>
+    </div>
+    
+    <div class="mt-6">
+        <h3 class="font-bold text-lg mb-4">✨ 推薦給你</h3>
+        <div id="recommendation-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Recommendations will be rendered here -->
+        </div>
+    </div>
+
+    <div class="mt-8">
+        <h3 class="font-bold text-lg mb-4">🏆 成就系統</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Badges placeholders or future content -->
+             <div class="card bg-base-100 shadow-sm">
+                <div class="card-body p-4">
+                    <h4 class="font-bold text-sm">新手上路</h4>
+                    <p class="text-xs text-base-content/60">開始你的第一次踩點</p>
+                </div>
+            </div>
+             <div class="card bg-base-100 shadow-sm opacity-50">
+                <div class="card-body p-4">
+                    <h4 class="font-bold text-sm">Coming Soon...</h4>
+                    <p class="text-xs text-base-content/60">更多成就解鎖中</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -277,7 +304,8 @@ import '../styles/global.css';
     }
 
     function renderFilters() {
-        const categories = ['全部', '推薦', '熱門', ...new Set(allShops.map(s => s.category))];
+        // Remove '推薦' from the main filter list
+        const categories = ['全部', '熱門', ...new Set(allShops.map(s => s.category))];
         const container = document.getElementById('filter-container');
         if (!container) return; // Null check
 
@@ -288,9 +316,6 @@ import '../styles/global.css';
 
             if (cat === '全部') {
                 val = 'all';
-            } else if (cat === '推薦') {
-                val = 'recommend';
-                label = '✨ 推薦給你';
             } else if (cat === '熱門') {
                 val = 'hot';
                 label = '🔥 熱門';
@@ -319,9 +344,9 @@ import '../styles/global.css';
     }
 
     window.showVisited = function() {
+        window.switchTab('passport');
         window.setFilter('visited', null);
     }
-
 
     function renderShops() {
         const container = document.getElementById('shop-list');
@@ -506,6 +531,8 @@ import '../styles/global.css';
                     if (mapRenderer) mapRenderer.openPopup(id);
                  }, 300);
              }
+             // Always show passport view when sorting/panning
+             window.switchTab('passport');
              // Scroll to map for better UX, center it
              document.getElementById('map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -527,6 +554,77 @@ import '../styles/global.css';
             levelEl.innerText = title;
             levelEl.className = `badge ${badgeClass}`;
         }
+        
+        // Update recommendations when progress (visited shops) changes
+        renderRecommendations();
+    }
+
+    function renderRecommendations() {
+        const container = document.getElementById('recommendation-list');
+        if (!container) return;
+        
+        // Get recommendations using the same logic
+        const recommendations = getFilteredShops('recommend', allShops, visitedShops, null);
+        
+        if (recommendations.length === 0) {
+            container.innerHTML = '<div class="col-span-full text-center py-4 text-base-content/60 text-sm">暫無推薦，多去幾家店試試！</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        // Show top 4 recommendations to avoid clutter
+        recommendations.slice(0, 4).forEach(shop => {
+            const isVisited = visitedShops.includes(shop.id);
+            const isFavorite = favoriteShops.includes(shop.id);
+            const isHot = (shop.popularity || 0) >= 800;
+
+            const card = document.createElement('div');
+            card.className = `card bg-base-100 shadow-sm hover:shadow-md transition-shadow shop-card cursor-pointer border border-primary/20`;
+
+            // Category icons
+            let visualIcon = '🇹🇼';
+            if (shop.category === '美食') visualIcon = '🍜';
+            else if (shop.category === '咖啡') visualIcon = '☕';
+            else if (shop.category === '景點') visualIcon = '⛩️';
+            else if (shop.category === '書店') visualIcon = '📚';
+            else if (shop.category === '生活') visualIcon = '🏠';
+
+            const similarToHtml = (shop.similarTo && shop.similarTo.length > 0)
+                ? `<div class="text-xs text-primary mt-1">
+                    🔗 因為你去過：${shop.similarTo.slice(0, 2).map(s => s.visitedName).join('、')}
+                   </div>`
+                : '';
+
+            card.innerHTML = `
+                <div class="card-body p-4 relative">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">${visualIcon}</span>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold text-base leading-tight">
+                                ${shop.name}
+                                ${isHot ? '<span class="text-warning text-sm">🔥</span>' : ''}
+                            </h3>
+                            <span class="text-xs text-base-content/50">${shop.category}</span>
+                        </div>
+                    </div>
+                    ${similarToHtml}
+                    <div class="card-actions justify-end items-center mt-2 pt-2 border-t border-base-200">
+                         <button class="btn btn-xs btn-primary btn-outline"
+                                onclick="panToShop('${shop.lat}', '${shop.lng}', '${shop.id}')">
+                            在地圖上查看
+                        </button>
+                    </div>
+                </div>
+            `;
+            // Attach click event for panning (and switching to passport tab)
+            card.addEventListener('click', (e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('button') || target.closest('a')) return;
+                window.panToShop(shop.lat, shop.lng, shop.id);
+            });
+
+            container.appendChild(card);
+        });
     }
 
     function getRankTitle(visitedCount: number, totalCount: number) {
@@ -744,16 +842,24 @@ import '../styles/global.css';
     window.switchTab = function(tabName: string) {
         document.getElementById('tab-passport')?.classList.remove('tab-active');
         document.getElementById('tab-leaderboard')?.classList.remove('tab-active');
+        document.getElementById('tab-progress')?.classList.remove('tab-active');
 
         if (tabName === 'passport') {
             document.getElementById('tab-passport')?.classList.add('tab-active');
             document.getElementById('passport-view')?.classList.remove('hidden');
             document.getElementById('leaderboard-view')?.classList.add('hidden');
+            document.getElementById('progress-view')?.classList.add('hidden');
             if (mapRenderer) mapRenderer.invalidateSize();
+        } else if (tabName === 'progress') {
+            document.getElementById('tab-progress')?.classList.add('tab-active');
+            document.getElementById('passport-view')?.classList.add('hidden');
+            document.getElementById('leaderboard-view')?.classList.add('hidden');
+            document.getElementById('progress-view')?.classList.remove('hidden');
         } else {
             document.getElementById('tab-leaderboard')?.classList.add('tab-active');
             document.getElementById('passport-view')?.classList.add('hidden');
             document.getElementById('leaderboard-view')?.classList.remove('hidden');
+            document.getElementById('progress-view')?.classList.add('hidden');
             renderLeaderboard();
         }
     }
