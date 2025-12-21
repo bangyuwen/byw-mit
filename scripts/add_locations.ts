@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { Place, PlaceData } from '../src/types/place';
 
 // File paths
 const __filename = fileURLToPath(import.meta.url);
@@ -13,23 +14,6 @@ const NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse";
 const HEADERS = {
     "User-Agent": "GluttonyMap/1.0"
 };
-
-interface Place {
-    name: string;
-    lat?: number;
-    lng?: number;
-    place_id: string;
-    county?: string;
-    city?: string;
-    [key: string]: any;
-}
-
-interface GluttonyData {
-    title: string;
-    count: number;
-    extracted_at: string;
-    places: Place[];
-}
 
 async function getLocation(lat: number, lng: number): Promise<any> {
     try {
@@ -62,7 +46,7 @@ async function sleep(ms: number) {
 async function main() {
     try {
         const fileContent = await fs.readFile(JSON_FILE, 'utf-8');
-        const data: GluttonyData = JSON.parse(fileContent);
+        const data: PlaceData = JSON.parse(fileContent);
 
         if (!data.places) {
             console.error("Error: 'places' key not found in JSON root.");
@@ -88,7 +72,7 @@ async function main() {
             if (lat !== undefined && lng !== undefined) {
                 console.log(`[${i + 1}/${places.length}] Processing ${place.name} (${lat}, ${lng})...`);
                 
-                const address = await getLocation(lat, lng);
+                const address = await getLocation(Number(lat), Number(lng));
                 
                 if (address) {
                     const city = address.city;

@@ -1,22 +1,7 @@
-export interface Place {
-    place_id: string;
-    name: string;
-    category: string;
-    description: string;
-    url: string;
-    lat: string;
-    lng: string;
-    recent_visitors?: string;
-    county?: string;
-    city?: string;
-    permanently_closed?: boolean;
-    source?: string;
-}
+import type { Place, PlaceData } from '../types/place';
 
-export interface GluttonyData {
-    title: string;
-    places: Place[];
-}
+export type { Place };
+export type GluttonyData = PlaceData;
 
 export class FetchError extends Error {
     constructor(public originalError: unknown) {
@@ -39,34 +24,23 @@ export async function fetchAllShops(): Promise<GluttonyData> {
         const gluttonyData = (await gluttonyRes.json()) as GluttonyData;
         const islandData = islandRes.ok ? (await islandRes.json()) as GluttonyData : { title: "島國", places: [] };
 
-    const placeMap = new Map<string, Place>();
+        const placeMap = new Map<string, Place>();
     
-    // Helper to add places
-    const addPlaces = (places: Place[], sourceTitle: string) => {
-        places.forEach(p => {
-            const key = p.place_id || p.name;
-            const placeWithSource = { ...p, source: sourceTitle };
-            
-            if (placeMap.has(key)) {
-                 // Merge: keep existing source if desired, or overwrite. 
-                 // Actually, if it exists in both, which source should we attribute?
-                 // Gluttony is likely "primary". Island is "secondary".
-                 // But wait, the user said "DollyNails NOT Gluttony, IS Island".
-                 // This implies if it's in Island, it should be Island.
-                 // BUT merge order is Gluttony -> Island.
-                 // If I add Gluttony first, then Island... valid fields override.
-                 // I should probably preserve the ORIGINAL source if it was already set?
-                 // Or if it's in both, maybe distinct?
-                 // Let's assume for now valid merge keeps the LAST source if we overwrite.
-                 placeMap.set(key, { ...placeMap.get(key)!, ...placeWithSource });
-            } else {
-                placeMap.set(key, placeWithSource);
-            }
-        });
-    };
+        // Helper to add/merge places (later sources override earlier ones)
+        const addPlaces = (places: Place[], sourceTitle: string) => {
+            places.forEach(p => {
+                const key = p.place_id || p.name;
+                const placeWithSource = { ...p, source: sourceTitle };
+                if (placeMap.has(key)) {
+                    placeMap.set(key, { ...placeMap.get(key)!, ...placeWithSource });
+                } else {
+                    placeMap.set(key, placeWithSource);
+                }
+            });
+        };
 
-    addPlaces(gluttonyData.places, gluttonyData.title);
-    addPlaces(islandData.places, islandData.title);
+        addPlaces(gluttonyData.places, gluttonyData.title);
+        addPlaces(islandData.places, islandData.title);
 
         return {
             title: gluttonyData.title,

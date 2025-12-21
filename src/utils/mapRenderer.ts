@@ -138,6 +138,10 @@ export class MapRenderer {
         });
     }
 
+    private createPopupContent(name: string, category: string, isVisited: boolean): string {
+        return `<b>${name}</b><br>${category}<br>${isVisited ? '✅ 已踩點' : '⬜ 未踩點'}`;
+    }
+
     updateMarkers(shops: any[], visitedShops: string[]): void {
         if (!this.map || !this.defaultIcon || !this.visitedIcon) return;
         
@@ -171,11 +175,7 @@ export class MapRenderer {
                         // Check if icon needs update
                         if ((marker as any).options.icon !== targetIcon) {
                            (marker as any).setIcon(targetIcon);
-                           marker.bindPopup(`
-                                <b>${shop.name}</b><br>
-                                ${shop.category}<br>
-                                ${isVisited ? '✅ 已踩點' : '⬜ 未踩點'}
-                            `);
+                           marker.bindPopup(this.createPopupContent(shop.name, shop.category, isVisited));
                         }
                     } else {
                         // Create new marker
@@ -183,11 +183,7 @@ export class MapRenderer {
                             icon: targetIcon
                         })
                             .addTo(mapInstance)
-                            .bindPopup(`
-                                <b>${shop.name}</b><br>
-                                ${shop.category}<br>
-                                ${isVisited ? '✅ 已踩點' : '⬜ 未踩點'}
-                            `);
+                            .bindPopup(this.createPopupContent(shop.name, shop.category, isVisited));
                         
                         (marker as any).shopId = shop.id; // Attach ID
                         this.markers.set(shop.id, marker);
