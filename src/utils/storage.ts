@@ -1,4 +1,4 @@
-import { STORAGE_KEYS as OLD_KEYS } from './storage'; // This might cause circular import if not careful, I'll just use string literals
+// import { STORAGE_KEYS as OLD_KEYS } from './storage'; // Unused
 
 export type ShopStatus = 'want' | 'visited' | 'like' | 'dislike';
 export type ShopStatusMap = Record<string, ShopStatus>;

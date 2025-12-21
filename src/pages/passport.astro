@@ -249,7 +249,6 @@ import '../styles/global.css';
         type ShopStatus,
         getShopStatusMap,
         setShopStatus,
-        getVisitedShops, // Keep for legacy read if needed or just use map
         getUserName,
         saveUserName,
         initUserName,
@@ -727,7 +726,7 @@ import '../styles/global.css';
         }
 
         filtered.forEach(shop => {
-            const status = statusMap[shop.id] || 'none';
+            const status = (statusMap[shop.id] as ShopStatus | undefined) || 'none';
             // Visited for "Collection Progress" includes visited, like, dislike
             const isProgressCounted = status === 'visited' || status === 'like' || status === 'dislike';
             const popularity = shop.popularity || 0;
@@ -900,7 +899,7 @@ import '../styles/global.css';
     }
 
     window.setStatus = function(id: string, status: ShopStatus | 'none') {
-        const current = statusMap[id] || 'none';
+        // const current = statusMap[id] || 'none';
         
         // Toggle logic
         setShopStatus(id, status === 'none' ? null : status);
@@ -912,9 +911,7 @@ import '../styles/global.css';
         updateMapMarkers();
         
         // Also update progress
-        const total = allShops.length;
-        const visitedCount = visitedShops.length;
-        updateProgress(visitedCount, total);
+        updateProgress();
         renderRecommendations();
     }
 
@@ -978,7 +975,7 @@ import '../styles/global.css';
         container.innerHTML = '';
         // Show top 4 recommendations to avoid clutter
         recommendations.slice(0, 4).forEach(shop => {
-            const status = statusMap[shop.id] || 'none';
+            // const status = statusMap[shop.id] || 'none';
             const isHot = (shop.popularity || 0) >= 800;
 
             const card = document.createElement('div');
@@ -1054,7 +1051,7 @@ import '../styles/global.css';
         return { title: '新手上路', badgeClass: 'badge-warning' };
     }
 
-    function getFilteredShops(filterType: string, shops: LocalShop[], visitedIds: string[], bounds: MapBounds | null = null, center: [number, number] | null = null, locationFilter: string = 'all', searchQuery: string = ''): LocalShop[] {
+    function getFilteredShops(filterType: string, shops: LocalShop[], _visitedIds: string[], bounds: MapBounds | null = null, center: [number, number] | null = null, locationFilter: string = 'all', searchQuery: string = ''): LocalShop[] {
         let result: LocalShop[] = [];
 
         // Special handling for Recommendation
@@ -1078,7 +1075,7 @@ import '../styles/global.css';
              // Ideally yes, but usually recommendations exclude visited/others.
              // Let's filter out dislikes just in case.
              result = result.filter(shop => {
-                const status = statusMap[shop.id] || 'none';
+                const status = (statusMap[shop.id] as ShopStatus | undefined) || 'none';
                 return status !== 'dislike';
              });
         } 
@@ -1094,7 +1091,7 @@ import '../styles/global.css';
 
             // 1. Status Visibility Filter (Settings)
             result = result.filter(shop => {
-                const status = statusMap[shop.id] || 'none';
+                const status = (statusMap[shop.id] as ShopStatus | undefined) || 'none';
                 // Always exclude dislike if hidden, OR if it's explicitly strictly filtered?
                 // Actually the requirement is: "Show me X".
                 // If the user UNCHECKS 'dislike', then dislikes are hidden.
@@ -1118,11 +1115,13 @@ import '../styles/global.css';
 
         // 4. Map Bounds Filter
         if (bounds) {
-             result = result.filter(shop => {
-                return shop.lat >= bounds.south &&
-                       shop.lat <= bounds.north &&
-                       shop.lng >= bounds.west &&
-                       shop.lng <= bounds.east;
+            result = result.filter(shop => {
+                const lat = typeof shop.lat === 'string' ? parseFloat(shop.lat) : shop.lat;
+                const lng = typeof shop.lng === 'string' ? parseFloat(shop.lng) : shop.lng;
+                return lat >= bounds.south &&
+                       lat <= bounds.north &&
+                       lng >= bounds.west &&
+                       lng <= bounds.east;
             });
         }
         
@@ -1140,8 +1139,13 @@ import '../styles/global.css';
         // Sort by distance if map center is available
         if (center) {
             result.sort((a, b) => {
-                const distA = Math.pow(a.lat - center[0], 2) + Math.pow(a.lng - center[1], 2);
-                const distB = Math.pow(b.lat - center[0], 2) + Math.pow(b.lng - center[1], 2);
+                const aLat = typeof a.lat === 'string' ? parseFloat(a.lat) : a.lat;
+                const aLng = typeof a.lng === 'string' ? parseFloat(a.lng) : a.lng;
+                const bLat = typeof b.lat === 'string' ? parseFloat(b.lat) : b.lat;
+                const bLng = typeof b.lng === 'string' ? parseFloat(b.lng) : b.lng;
+                
+                const distA = Math.pow(aLat - center[0], 2) + Math.pow(aLng - center[1], 2);
+                const distB = Math.pow(bLat - center[0], 2) + Math.pow(bLng - center[1], 2);
                 return distA - distB;
             });
         }
