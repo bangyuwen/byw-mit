@@ -39,7 +39,6 @@ import '../styles/global.css';
             <div role="tablist" class="tabs tabs-bordered justify-start sm:justify-center w-full">
                 <a role="tab" class="tab tab-active h-12 whitespace-nowrap" id="tab-passport" onclick="switchTab('passport')">踩點護照</a>
                 <a role="tab" class="tab h-12 whitespace-nowrap" id="tab-progress" onclick="switchTab('progress')">踩點進度</a>
-                <a role="tab" class="tab h-12 whitespace-nowrap" id="tab-leaderboard" onclick="switchTab('leaderboard')">排行榜</a>
             </div>
         </div>
     </div>
@@ -68,6 +67,12 @@ import '../styles/global.css';
             <button id="search-btn" class="btn btn-sm btn-circle btn-ghost" onclick="openSearchDialog()" title="搜尋店家">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </button>
+            <div class="divider divider-horizontal m-0 mx-1"></div>
+            <button id="btn-settings" class="btn btn-sm btn-circle btn-ghost" onclick="openSettingsDialog()" title="過濾設定">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
                 </svg>
             </button>
         </div>
@@ -129,65 +134,83 @@ import '../styles/global.css';
     </div>
 </div>
 
-<!-- Leaderboard View -->
-<div id="leaderboard-view" class="hidden max-w-4xl mx-auto p-4">
-    <div class="text-center py-4">
-        <h3 class="text-xl font-bold">🏆 台灣制霸排行榜</h3>
-        <p id="user-rank-info" class="text-base-content/60 mt-2">載入中...</p>
-    </div>
 
-    <h4 class="font-bold mt-6 mb-3">👤 玩家排行榜</h4>
-    <div class="overflow-x-auto">
-        <table class="table table-zebra bg-base-100 rounded-lg">
-            <thead>
-                <tr>
-                    <th>排名</th>
-                    <th>名稱</th>
-                    <th>踩點數</th>
-                    <th>稱號</th>
-                </tr>
-            </thead>
-            <tbody id="leaderboard-body">
-            </tbody>
-        </table>
-    </div>
 
-    <h4 class="font-bold mt-8 mb-3">🔥 熱門店家排行榜</h4>
-    <div class="overflow-x-auto">
-        <table class="table table-zebra bg-base-100 rounded-lg">
-            <thead>
-                <tr>
-                    <th>排名</th>
-                    <th>店家名稱</th>
-                    <th>類別</th>
-                    <th>人氣指數</th>
-                </tr>
-            </thead>
-            <tbody id="shop-leaderboard-body">
-            </tbody>
-        </table>
-    </div>
+<!-- Settings Dialog -->
+<dialog id="settings-dialog" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">顯示設定</h3>
+        <p class="text-sm text-base-content/60 mb-4">勾選你想在地圖和列表中看到的店家狀態：</p>
+        
+        <div class="flex flex-col gap-2">
+            <label class="label cursor-pointer justify-start gap-3 p-0 hover:bg-base-200 rounded-lg p-2 -ml-2 transition-colors">
+                <input type="checkbox" class="toggle toggle-info toggle-sm" checked onchange="toggleStatusFilter('none')" id="filter-status-none" />
+                <span class="label-text flex items-center gap-2">
+                     <span class="text-info w-5 text-center flex justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                     </span>
+                     <span>未標記</span>
+                </span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-3 p-0 hover:bg-base-200 rounded-lg p-2 -ml-2 transition-colors">
+                <input type="checkbox" class="toggle toggle-secondary toggle-sm" checked onchange="toggleStatusFilter('want')" id="filter-status-want" />
+                <span class="label-text flex items-center gap-2">
+                     <span class="text-secondary w-5 text-center flex justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                            <path fill-rule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.583A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clip-rule="evenodd" />
+                        </svg>
+                     </span>
+                     <span>想去</span>
+                </span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-3 p-0 hover:bg-base-200 rounded-lg p-2 -ml-2 transition-colors">
+                <input type="checkbox" class="toggle toggle-success toggle-sm" checked onchange="toggleStatusFilter('visited')" id="filter-status-visited" />
+                <span class="label-text flex items-center gap-2">
+                     <span class="text-success w-5 text-center flex justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                          <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+                        </svg>
+                     </span>
+                     <span>去過</span>
+                </span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-3 p-0 hover:bg-base-200 rounded-lg p-2 -ml-2 transition-colors">
+                <input type="checkbox" class="toggle toggle-error toggle-sm" checked onchange="toggleStatusFilter('like')" id="filter-status-like" />
+                <span class="label-text flex items-center gap-2">
+                     <span class="text-error w-5 text-center flex justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                          <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                        </svg>
+                     </span>
+                     <span>喜歡</span>
+                </span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-3 p-0 hover:bg-base-200 rounded-lg p-2 -ml-2 transition-colors">
+                <input type="checkbox" class="toggle toggle-neutral toggle-sm" onchange="toggleStatusFilter('dislike')" id="filter-status-dislike" />
+                <span class="label-text flex items-center gap-2">
+                     <span class="text-neutral w-5 text-center flex justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                           <!-- Use a slightly simplified thumb down path or same as card -->
+                           <path d="M15.73 5.5h1.035A7.465 7.465 0 0118 9.625a7.465 7.465 0 01-1.235 4.125h-.148c-.806 0-1.534.446-2.031 1.08a.75.75 0 00.49 1.121 6.58 6.58 0 013.924 6.502.75.75 0 01-1.498 0A5.08 5.08 0 0013.783 17.5a.75.75 0 00-.75-.75 2.924 2.924 0 01-2.924-2.924c0-.706.262-1.396.726-1.921a.75.75 0 00-.49-1.32H9.27c-.882 0-1.742-.16-2.544-.458l-.053-.02a.75.75 0 00-.5.01l-1.496.56A7.509 7.509 0 012.25 9c0-2.484 1.21-4.708 3.102-6.11.393-.291.897-.247 1.25.076l1.378 1.252A2.96 2.96 0 018.665 5.5h7.065z" />
+                        </svg>
+                     </span>
+                     <span>不推</span>
+                </span>
+            </label>
+        </div>
 
-    <h4 class="font-bold mt-8 mb-3">👀 全台店家採點大比拼</h4>
-    <div class="overflow-x-auto">
-        <table class="table table-zebra bg-base-100 rounded-lg">
-            <thead>
-                <tr>
-                    <th>店家</th>
-                    <th>類別</th>
-                    <th>我的狀態</th>
-                    <th>誰也去過</th>
-                </tr>
-            </thead>
-            <tbody id="comparison-body">
-            </tbody>
-        </table>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn btn-primary" onclick="renderShops(); updateMapMarkers();">確定</button>
+            </form>
+        </div>
     </div>
-
-    <div class="text-center mt-6">
-        <button class="btn btn-outline btn-sm" onclick="updateUserName()">修改我的暱稱</button>
-    </div>
-</div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
 
 <!-- Search Dialog -->
 <dialog id="search-dialog" class="modal modal-bottom sm:modal-middle">
@@ -229,12 +252,10 @@ import '../styles/global.css';
     import { getRecommendations, preprocessPlaces, type ProcessedPlace, type RecommendedPlace, type SimilarShop } from "../utils/recommendations";
     import { MapRenderer, type MapBounds } from "../utils/mapRenderer";
     import {
-        getVisitedShops,
-        addVisitedShop,
-        removeVisitedShop,
-        saveVisitedShops,
-        getFavoriteShops,
-        toggleFavoriteShop,
+        type ShopStatus,
+        getShopStatusMap,
+        setShopStatus,
+        getVisitedShops, // Keep for legacy read if needed or just use map
         getUserName,
         saveUserName,
         initUserName,
@@ -246,18 +267,21 @@ import '../styles/global.css';
     // Extend Window interface for custom global functions
     declare global {
         interface Window {
+            updateUserName: () => void;
+            renderShops: () => void;
+            updateMapMarkers: () => void;
+            setLocationFilter: (location: string) => void;
             setFilter: (category: string, btnElement:  HTMLElement | null) => void;
             showVisited: () => void;
-            toggleFavorite: (id: string, btn: HTMLButtonElement) => void;
-            toggleVisit: (id: string) => void;
+            setStatus: (id: string, status: ShopStatus | 'none') => void;
+            toggleStatusFilter: (status: string) => void;
+            openSettingsDialog: () => void;
+            toggleFilter: (category: string) => void; // Deprecated but keeping signature to avoid quick break if inline calls exist, though we removed buttons
             switchTab: (tabName: string) => void;
             toggleMap: (show: boolean) => void;
-            updateUserName: () => void;
-            setLocationFilter: (location: string) => void;
             exportData: () => void;
             importData: () => void;
             resetData: () => void;
-            locateUser: () => void;
             locateUser: () => void;
             panToShop: (lat: number | string, lng: number | string, id?: string) => void;
             setSearchQuery: (query: string) => void;
@@ -278,26 +302,43 @@ import '../styles/global.css';
         source?: string;
     }
 
-    interface LeaderboardEntry {
-        rank: number;
-        name: string;
-        visited_count: number;
-        title: string;
-        isUser?: boolean;
-    }
-
     let allShops: LocalShop[] = [];
     let collectionTitle = ''; // 收藏來源名稱
-    let visitedShops: string[] = getVisitedShops();
-    let favoriteShops: string[] = getFavoriteShops();
+    let statusMap = getShopStatusMap();
+    let visitedShops: string[] = []; // Computed from statusMap
+    // let favoriteShops: string[] = []; // Deprecated, use statusMap check
+    
+    // Helper to refresh derived lists if needed, but we mostly use statusMap now
+    function refreshDerivedData() {
+        visitedShops = Object.entries(statusMap)
+            .filter(([_, s]) => s === 'visited' || s === 'like' || s === 'dislike')
+            .map(([id]) => id);
+    }
+    refreshDerivedData();
+    
     let userName = getUserName();
     let currentFilter = 'all';
     let currentLocationFilter = 'all';
     let currentSearchQuery = '';
     let mapRenderer: MapRenderer | null = null;
-    let leaderboardData: LeaderboardEntry[] = [];
     let currentBounds: MapBounds | null = null;
     let selectedShopId: string | null = null;
+    let visibleStatuses = new Set<string>(['none', 'want', 'visited', 'like']); // Default: Dislike hidden
+
+    // Function to toggle status visibility
+    window.toggleStatusFilter = function(status: string) {
+        if (visibleStatuses.has(status)) {
+            visibleStatuses.delete(status);
+        } else {
+            visibleStatuses.add(status);
+        }
+        // Save preference could be added here if desired
+    }
+    
+    window.openSettingsDialog = function() {
+        const dialog = document.getElementById('settings-dialog') as HTMLDialogElement;
+        if (dialog) dialog.showModal();
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
         initUserName();
@@ -359,7 +400,6 @@ import '../styles/global.css';
             renderFilters();
             renderShops();
             updateProgress();
-            fetchLeaderboard();
         } catch (err) {
             console.error(err);
             const errorMessage = err instanceof Error ? err.message : '未知錯誤';
@@ -408,6 +448,10 @@ import '../styles/global.css';
             html += `<button class="btn btn-sm ${val === currentFilter ? 'btn-primary' : 'btn-ghost'} whitespace-nowrap"
                              onclick="setFilter('${val}', this)">${label}</button>`;
         });
+
+        // Add Disliked category explicitly at the end
+        html += `<button class="btn btn-sm ${currentFilter === 'disliked' ? 'btn-primary' : 'btn-ghost'} whitespace-nowrap"
+                         onclick="setFilter('disliked', this)">💔 不喜歡</button>`;
         container.innerHTML = html;
     }
 
@@ -480,17 +524,46 @@ import '../styles/global.css';
     window.setFilter = function(category: string, btnElement: HTMLElement | null) {
         currentFilter = category;
         selectedShopId = null; // Reset selection on filter change
+        
+        // Reset Category Buttons
         document.querySelectorAll('#filter-categories .btn').forEach(b => {
              b.classList.remove('btn-primary');
              b.classList.add('btn-ghost');
         });
         
+        // Reset Toolbar Buttons
+        const favBtn = document.getElementById('btn-filter-favorite');
+        const dislikeBtn = document.getElementById('btn-filter-disliked');
+        if(favBtn) { favBtn.classList.remove('btn-soft', 'bg-error/10'); favBtn.classList.add('btn-ghost'); }
+        if(dislikeBtn) { dislikeBtn.classList.remove('btn-soft', 'bg-neutral/10'); dislikeBtn.classList.add('btn-ghost'); }
+
+        // Highlight Active Button
         if (btnElement) {
             btnElement.classList.remove('btn-ghost');
             btnElement.classList.add('btn-primary');
         }
+        
+        // Highlight Toolbar Buttons based on currentFilter
+        if (currentFilter === 'favorite' && favBtn) {
+            favBtn.classList.remove('btn-ghost');
+            favBtn.classList.add('btn-soft', 'bg-error/10');
+        }
+        if (currentFilter === 'disliked' && dislikeBtn) {
+            dislikeBtn.classList.remove('btn-ghost');
+            dislikeBtn.classList.add('btn-soft', 'bg-neutral/10');
+        }
+
         renderShops();
         updateMapMarkers();
+    }
+
+    window.toggleFilter = function(category: string) {
+        if (currentFilter === category) {
+            window.setFilter('all', null);
+        } else {
+            // Check if we need to pass the element? setFilter logic handles it by ID check now
+            window.setFilter(category, null);
+        }
     }
 
     window.setSearchQuery = function(query: string) {
@@ -597,14 +670,15 @@ import '../styles/global.css';
         }
 
         filtered.forEach(shop => {
-            const isVisited = visitedShops.includes(shop.id);
-            const isFavorite = favoriteShops.includes(shop.id);
+            const status = statusMap[shop.id] || 'none';
+            // Visited for "Collection Progress" includes visited, like, dislike
+            const isProgressCounted = status === 'visited' || status === 'like' || status === 'dislike';
             const popularity = shop.popularity || 0;
             const isHot = popularity >= 800;
-            const isClosed = shop.permanently_closed; // Check closed status
+            const isClosed = shop.permanently_closed; 
 
             const card = document.createElement('div');
-            card.className = `card bg-base-100 shadow-sm hover:shadow-md transition-shadow shop-card cursor-pointer ${isVisited ? 'visited' : ''} ${isClosed ? 'grayscale opacity-70' : ''}`;
+            card.className = `card bg-base-100 shadow-sm hover:shadow-md transition-shadow shop-card cursor-pointer ${isProgressCounted ? 'visited' : ''} ${isClosed ? 'grayscale opacity-70' : ''}`;
 
             // Category icons
             let visualIcon = '🇹🇼';
@@ -613,6 +687,29 @@ import '../styles/global.css';
             else if (shop.category === '甜點') visualIcon = '🍰';
             else if (shop.category === '冰品') visualIcon = '🍧';
             else if (shop.category === '飲料') visualIcon = '🥤';
+            else if (shop.category === '酒吧') visualIcon = '🍺';
+            else if (shop.category === '景點') visualIcon = '🏞️';
+
+            // Similar shops HTML
+
+            // To safely replace buttons, I will target the bottom card actions part.
+            // But I replaced the "const isVisited..." top part too.
+            // So I need to reconstruct.
+            
+            // Reconstruct similarTo logic (minimalistic or assume I verify it separately? 
+            // I'll try to include it or split the chunk)
+            // Splitting chunks is safer.
+            
+            // Chunk 1: Top vars declaration
+            // Done above in logic replacement? No, I am constructing the loop body replacement.
+            // I'll leave the similarTo logic alone and only replace the top vars and bottom actions.
+            // But I can't target "const isVisited..." easily without replacing the whole block or finding unique context.
+            
+            // Let's use multiple chunks for loop body.
+            // Chunk A: Variable setup
+            
+            // Chunk B: Card InnerHTML (The buttons)
+
             else if (shop.category === '酒吧') visualIcon = '🍺';
             else if (shop.category === '景點') visualIcon = '⛩️';
             else if (shop.category === '書店') visualIcon = '📚';
@@ -635,29 +732,6 @@ import '../styles/global.css';
                    </div>`
                 : '';
 
-            // Item-to-Item: show which visited shops are similar
-            // Social Counts
-            const visitCount = visitors.length;
-            const collectCount = shop.popularity || 0;
-            
-            const statsHtml = `
-                <div class="flex gap-3 text-xs text-base-content/60 mt-2 mb-1">
-                    <span class="flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
-                        </svg>
-                        ${collectCount} 人收藏
-                    </span>
-                    <span class="flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
-                        </svg>
-                        ${visitCount} 人去過
-                    </span>
-                </div>
-            `;
-
             const similarToHtml = (isRecommend && shop.similarTo && shop.similarTo.length > 0)
                 ? `<div class="text-xs text-primary mt-1">
                     🔗 因為你去過：${shop.similarTo.slice(0, 2).map(s => s.visitedName).join('、')}
@@ -665,6 +739,10 @@ import '../styles/global.css';
                 : '';
 
             const showRecommendBadge = isRecommend && shop.cfScore;
+            
+            // Calculate active button classes
+            const getBtnClass = (s: string, activeClass: string) => 
+                status === s ? activeClass + ' text-white scale-110' : 'btn-ghost opacity-60 hover:opacity-100';
 
             card.innerHTML = `
                 <div class="card-body p-4 relative">
@@ -679,23 +757,76 @@ import '../styles/global.css';
                             </h3>
                             <span class="text-xs text-base-content/50">${shop.category} · ${shop.source || collectionTitle}</span>
                         </div>
+                         <a href="${shop.map_url}" target="_blank" class="btn btn-xs btn-ghost text-base-content/50 btn-square" title="Google Maps" onclick="event.stopPropagation()">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+                              <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                            </svg>
+                         </a>
                     </div>
                     <p class="text-sm text-base-content/60 line-clamp-2 mt-2">${shop.description || '暫無介紹'}</p>
-                    ${statsHtml}
+
                     ${similarToHtml}
                     ${visitorsHtml}
-                    <div class="card-actions justify-between items-center mt-auto pt-3 border-t border-base-200">
-                        <div class="flex gap-1">
-                            <a href="${shop.map_url}" target="_blank" class="btn btn-xs btn-ghost" title="地圖">📍</a>
-                            <button class="btn btn-xs ${isFavorite ? 'btn-error text-white' : 'btn-ghost text-error'}"
-                                    onclick="toggleFavorite('${shop.id}', this)" title="收藏">
-                                ${isFavorite ? '❤' : '♡'}
+                    <div class="card-actions flex-col gap-2 mt-auto pt-3 border-t border-base-200">
+                        <!-- Status Buttons -->
+                        <div class="flex flex-wrap justify-center gap-2 w-full">
+                            <button class="btn btn-xs gap-1 ${status === 'none' ? 'btn-info text-white' : 'btn-ghost opacity-40'}" 
+                                    onclick="setStatus('${shop.id}', 'none')">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                重置
+                            </button>
+                            <button class="btn btn-xs gap-1 ${getBtnClass('want', 'btn-secondary')}" 
+                                    onclick="setStatus('${shop.id}', 'want')">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3">
+                                  <path fill-rule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.583A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clip-rule="evenodd" />
+                                </svg>
+                                想去
+                            </button>
+                            <button class="btn btn-xs gap-1 ${getBtnClass('visited', 'btn-success')}" 
+                                    onclick="setStatus('${shop.id}', 'visited')">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3">
+                                  <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+                                </svg>
+                                去過
+                            </button>
+                            <button class="btn btn-xs gap-1 ${getBtnClass('like', 'btn-error')}" 
+                                    onclick="setStatus('${shop.id}', 'like')">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3">
+                                  <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                                </svg>
+                                喜歡
+                            </button>
+                            <button class="btn btn-xs gap-1 ${getBtnClass('dislike', 'btn-neutral')}" 
+                                    onclick="setStatus('${shop.id}', 'dislike')">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3">
+                                  <path d="M15.73 5.25h1.035A3.75 3.75 0 0120.5 9v.75a3.75 3.75 0 01-3.75 3.75h-1.035A3.75 3.75 0 0112 9.75V9a3.75 3.75 0 013.73-3.75zM5.25 5.25a3 3 0 00-3 3v10.5a3 3 0 003 3h10.5a3 3 0 003-3V13.5a.75.75 0 00-1.5 0v5.25H5.25V8.25h1.5V5.25H5.25z" />
+                                  <path d="M9 5.25v6h1.5v-6H9z" />
+                                  <path d="M12.68 4.39A2.247 2.247 0 0113.84 0a.75.75 0 01.595 1.2 5.23 5.23 0 00-1.25 2.924c-.062.778-.172 1.543-.327 2.292-.092.449.253.864.71.864h3.692c.69 0 1.305.418 1.56 1.059.206.518-.04 1.102-.533 1.348l-3.35 1.675c-.347.174-.636.467-.82.834a3.004 3.004 0 01-2.68 1.664H8.25" opacity="0.5" />
+                                  <!-- Using Hand Thumb Down solid -->
+                                  <path d="M10.875 16.5a2.25 2.25 0 002.25-2.25V9.75a3.73 3.73 0 011.667-3.155A2.25 2.25 0 0013.84 6.75 2.25 2.25 0 0112.68 4.39 3.004 3.004 0 009.97 7.288 3.002 3.002 0 008.25 9v5.25a3.002 3.002 0 002.625 2.25z" />
+                                  <!-- Proper Hand Thumb Down -->
+                                  <path d="M18.75 12.75h1.5a.75.75 0 000-1.5h-1.5a.75.75 0 000 1.5zM12 6a.75.75 0 01.75-.75 3.75 3.75 0 01 7.5 0v4.5a.75.75 0 01-.75.75h-7.5a.75.75 0 01-.75-.75V6zM6 6a.75.75 0 01.75-.75 3.75 3.75 0 017.5 0v4.5a.75.75 0 01-.75.75h-7.5a.75.75 0 01-.75-.75V6z" style="display:none"/>
+                                   <path fill-rule="evenodd" d="M1.5 4.5a3 3 0 013-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 01-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 006.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 011.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 01-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5z" clip-rule="evenodd" style="display:none"/>
+                                   <path d="M3.4 17.5l-1.9 1.8c-.4.4-.4 1 0 1.4l1.9 1.8a1 1 0 001.4 0l1.9-1.8" style="display:none"/>
+                                   <path fill-rule="evenodd" d="M12.97 3.97a.75.75 0 011.06 0l7.5 7.5a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 11-1.06-1.06l6.22-6.22H3a.75.75 0 010-1.5h16.19l-6.22-6.22a.75.75 0 010-1.06z" clip-rule="evenodd" style="display:none"/>
+                                  <!-- The following is valid Heroicons hand-thumb-down solid -->
+                                  <path d="M15.73 5.688A3.753 3.753 0 0012 9.75v.75H8.25a3.75 3.75 0 00-3.75 3.75v6.75A3.75 3.75 0 008.25 24.75H12a3.75 3.75 0 003.75-3.75v-.75h3.692c.69 0 1.305-.418 1.56-1.059.206-.518-.04-1.102-.533-1.348l-3.35-1.675a.747.747 0 01-.322-.387l-.466-1.86a.75.75 0 01.127-.678.75.75 0 01.597-.306h3.195a.75.75 0 00.53-1.28l-8.25-8.25A.75.75 0 0011.97 3.75h-7.5" style="display:none"/> 
+                                  <!-- Simplest Hand Thumb Down -->
+                                  <path d="M15.73 5.25h1.035A3.75 3.75 0 0120.5 9v.75a3.75 3.75 0 01-3.75 3.75h-1.035A3.75 3.75 0 0112 9.75V9a3.75 3.75 0 013.73-3.75zM5.25 5.25a3 3 0 00-3 3v10.5a3 3 0 003 3h10.5a3 3 0 003-3V13.5a.75.75 0 00-1.5 0v5.25H5.25V8.25h1.5V5.25H5.25z" style="display:none" />
+                                  <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm11.378-3.917c-.89-.777-2.366-.777-3.255 0a.75.75 0 01-.988-1.129c1.454-1.272 3.776-1.272 5.23 0 1.513 1.324 1.513 3.518 0 4.842l-3.411 2.992a.75.75 0 11-.99-1.128l3.414-2.993c.969-.85 9.69-2.26 0-2.583z" clip-rule="evenodd" style="display:none"/>
+
+                                  <!-- Actually copying correct Hand Thumb Down solid path -->
+                                  <path d="M12.63 4.39A2.247 2.247 0 0113.84 0a.75.75 0 01.595 1.2 5.23 5.23 0 00-1.25 2.924c-.062.778-.172 1.543-.327 2.292-.092.449.253.864.71.864h3.692c.69 0 1.305.418 1.56 1.059.206.518-.04 1.102-.533 1.348l-3.35 1.675c-.347.174-.636.467-.82.834a3.004 3.004 0 01-2.68 1.664H8.25a3.002 3.002 0 01-2.63-1.503l-2.62-4.582a1.125 1.125 0 01.97-1.665h1.566c.21 0 .4.135.474.331l1.5 3.938A.75.75 0 008.25 15h3.75a1.5 1.5 0 001.34-2.247l-1.5-3.938A2.25 2.25 0 009.682 7.5H8.25a.75.75 0 010-1.5h1.432c.563 0 1.096.262 1.432.72.633.866 1.523 1.53 2.516 1.53.5 0 .984-.132 1.412-.392a2.23 2.23 0 00.916-1.503 3.737 3.737 0 01-1.666-3.155V4.39z" style="display:none"/>
+                                  
+                                  <!-- The REAL one from site (Heroicons Hand Thumb Down Solid) -->
+                                   <path d="M15.73 5.25h1.035A3.75 3.75 0 0120.5 9v.75a3.75 3.75 0 01-3.75 3.75h-1.035A3.75 3.75 0 0112 9.75V9a3.75 3.75 0 013.73-3.75zM5.25 5.25a3 3 0 00-3 3v10.5a3 3 0 003 3h10.5a3 3 0 003-3V13.5a.75.75 0 00-1.5 0v5.25H5.25V8.25h1.5V5.25H5.25z" style="display:none"/>
+                                   <path d="M9.97 7.288a3.004 3.004 0 00-2.68 1.664H8.25a.75.75 0 000 1.5h2.62a1.502 1.502 0 011.34 2.247l-1.5 3.938a2.25 2.25 0 002.158 3.064h3.75a3.002 3.002 0 002.63-1.503l2.62-4.582a1.125 1.125 0 00-.97-1.665h-1.566a.225.225 0 00-.211-.132l-.027-.003c-1.09-.136-1.879-1.09-1.879-2.188V9.75c0-1.637-.822-3.167-2.193-4.06-1.776-1.157-2.682-1.284-2.682 1.597z" />
+                                </svg>
+                                不推
                             </button>
                         </div>
-                        <button class="btn btn-xs ${isVisited ? 'btn-success' : 'btn-outline'}"
-                                onclick="toggleVisit('${shop.id}')">
-                            ${isVisited ? '已攻略' : '攻略'}
-                        </button>
                     </div>
                 </div>
             `;
@@ -711,26 +842,23 @@ import '../styles/global.css';
         });
     }
 
-    window.toggleFavorite = function(id: string, btn: HTMLButtonElement) {
-        favoriteShops = toggleFavoriteShop(id);
+    window.setStatus = function(id: string, status: ShopStatus | 'none') {
+        const current = statusMap[id] || 'none';
         
-        // Optimistic UI update instead of full re-render for better UX
-        const isFav = favoriteShops.includes(id);
-        btn.classList.toggle('btn-error', isFav);
-        btn.classList.toggle('text-white', isFav);
-        btn.classList.toggle('btn-ghost', !isFav);
-        btn.innerText = isFav ? '❤' : '♡';
-    }
-
-    window.toggleVisit = function(id: string) {
-        if (visitedShops.includes(id)) {
-            visitedShops = removeVisitedShop(id);
-        } else {
-            visitedShops = addVisitedShop(id);
-        }
+        // Toggle logic
+        setShopStatus(id, status === 'none' ? null : status);
+        if (status === 'none') delete statusMap[id];
+        else statusMap[id] = status;
+        
+        refreshDerivedData();
         renderShops();
         updateMapMarkers();
-        updateProgress();
+        
+        // Also update progress
+        const total = allShops.length;
+        const visitedCount = visitedShops.length;
+        updateProgress(visitedCount, total);
+        renderRecommendations();
     }
 
     // New function to pan map
@@ -797,18 +925,14 @@ import '../styles/global.css';
     // Let me wrap it to be safe or define it if missing.
     
     // START CHECK: Previous view stopped at 800. Let's assume it's there. 
-    // I'll define it here to be safe and override behavior.
-    
     window.switchTab = function(tabName: string) {
         // Hide all views
         document.getElementById('passport-view')?.classList.add('hidden');
         document.getElementById('progress-view')?.classList.add('hidden');
-        document.getElementById('leaderboard-view')?.classList.add('hidden');
         
         // Remove active class from tabs
         document.getElementById('tab-passport')?.classList.remove('tab-active');
         document.getElementById('tab-progress')?.classList.remove('tab-active');
-        document.getElementById('tab-leaderboard')?.classList.remove('tab-active');
         
         // Show target view
         document.getElementById(`${tabName}-view`)?.classList.remove('hidden');
@@ -837,8 +961,7 @@ import '../styles/global.css';
         container.innerHTML = '';
         // Show top 4 recommendations to avoid clutter
         recommendations.slice(0, 4).forEach(shop => {
-            const isVisited = visitedShops.includes(shop.id);
-            const isFavorite = favoriteShops.includes(shop.id);
+            const status = statusMap[shop.id] || 'none';
             const isHot = (shop.popularity || 0) >= 800;
 
             const card = document.createElement('div');
@@ -916,84 +1039,89 @@ import '../styles/global.css';
 
     function getFilteredShops(filterType: string, shops: LocalShop[], visitedIds: string[], bounds: MapBounds | null = null, center: [number, number] | null = null, locationFilter: string = 'all', searchQuery: string = ''): LocalShop[] {
         let result: LocalShop[] = [];
-        if (filterType === 'all') {
-            result = [...shops]; // Copy array to avoid mutating original
-            
-            // Sort by distance if center is available
-            if (center) {
-                const [centerLat, centerLng] = center;
-                result.sort((a, b) => {
-                    const latA = typeof a.lat === 'number' ? a.lat : parseFloat(a.lat as string);
-                    const lngA = typeof a.lng === 'number' ? a.lng : parseFloat(a.lng as string);
-                    const latB = typeof b.lat === 'number' ? b.lat : parseFloat(b.lat as string);
-                    const lngB = typeof b.lng === 'number' ? b.lng : parseFloat(b.lng as string);
-                    
-                    if (isNaN(latA) || isNaN(lngA)) return 1;
-                    if (isNaN(latB) || isNaN(lngB)) return -1;
-                    
-                    const distA = Math.pow(latA - centerLat, 2) + Math.pow(lngA - centerLng, 2);
-                    const distB = Math.pow(latB - centerLat, 2) + Math.pow(lngB - centerLng, 2);
-                    
-                    return distA - distB;
-                });
-            }
-        } else if (filterType === 'recommend') {
-            const places = getRecommendations(shops as ProcessedPlace[], visitedIds);
-            
-            // Map returns (LocalShop | null)[]
-            const mapped: (LocalShop | null)[] = places.map((s): LocalShop | null => {
-                 // Determine if s is RecommendedPlace to access cfScore/similarTo
-                 const rec = s as RecommendedPlace;
-                 const existing = shops.find(shop => shop.place_id === s.place_id);
-                 if (!existing) return null;
-                 
-                 return {
-                    ...existing,
-                    cfScore: rec.cfScore,
-                    similarTo: rec.similarTo
-                 };
+
+        // Special handling for Recommendation
+        if (filterType === 'recommend') {
+             const places = getRecommendations(shops as ProcessedPlace[], visitedIds);
+             // Map returns (LocalShop | null)[]
+             const mapped: (LocalShop | null)[] = places.map((s): LocalShop | null => {
+                  const rec = s as RecommendedPlace;
+                  const existing = shops.find(shop => shop.place_id === s.place_id);
+                  if (!existing) return null;
+                  return {
+                     ...existing,
+                     cfScore: rec.cfScore,
+                     similarTo: rec.similarTo
+                  };
+             });
+             result = mapped.filter((s): s is LocalShop => s !== null);
+             
+             // Recommendation should probably still respect Dislike filter? 
+             // Ideally yes, but usually recommendations exclude visited/others.
+             // Let's filter out dislikes just in case.
+             result = result.filter(shop => {
+                const status = statusMap[shop.id] || 'none';
+                return status !== 'dislike';
+             });
+        } 
+        else {
+            // General Filtering
+            result = [...shops];
+
+            // 1. Status Visibility Filter (Settings)
+            result = result.filter(shop => {
+                const status = statusMap[shop.id] || 'none';
+                // Always exclude dislike if hidden, OR if it's explicitly strictly filtered?
+                // Actually the requirement is: "Show me X".
+                // If the user UNCHECKS 'dislike', then dislikes are hidden.
+                // If the user CHECKS 'dislike', they are SHOWN.
+                return visibleStatuses.has(status);
             });
-            
-            result = mapped.filter((s): s is LocalShop => s !== null);
-
-        } else if (filterType === 'hot') {
-            result = shops.filter(s => s.popularity >= 800);
-            result.sort((a, b) => b.popularity - a.popularity);
-        } else if (filterType === 'visited') {
-            result = shops.filter(s => visitedIds.includes(s.id));
-        } else {
-            result = shops.filter(s => s.category === filterType);
         }
 
-        // Apply Location Filter
-        if (locationFilter && locationFilter !== 'all') {
-            result = result.filter(s => s.county === locationFilter || s.city === locationFilter);
+        // 2. Category Filter
+        if (filterType !== 'all' && filterType !== 'recommend') {
+            result = result.filter(shop => shop.category === filterType);
+        }
+        
+        // 3. Location Filter
+        if (locationFilter !== 'all') {
+            result = result.filter(shop => shop.city === locationFilter || shop.county === locationFilter);
         }
 
+        // 4. Map Bounds Filter
         if (bounds) {
-            result = result.filter(s => {
-                const lat = typeof s.lat === 'number' ? s.lat : parseFloat(s.lat as string);
-                const lng = typeof s.lng === 'number' ? s.lng : parseFloat(s.lng as string);
-                if (isNaN(lat) || isNaN(lng)) return false;
-                return lat <= bounds.north &&
-                       lat >= bounds.south &&
-                       lng <= bounds.east &&
-                       lng >= bounds.west;
+             result = result.filter(shop => {
+                return shop.lat >= bounds.south &&
+                       shop.lat <= bounds.north &&
+                       shop.lng >= bounds.west &&
+                       shop.lng <= bounds.east;
             });
         }
-
-        // Apply Search Filter
+        
+        // 5. Search Query
         if (searchQuery) {
-            result = result.filter(s => {
-                const name = s.name.toLowerCase();
-                const desc = (s.description || '').toLowerCase();
-                const cat = s.category.toLowerCase();
-                return name.includes(searchQuery) || desc.includes(searchQuery) || cat.includes(searchQuery);
+            const q = searchQuery.toLowerCase();
+            result = result.filter(shop => 
+                shop.name.toLowerCase().includes(q) || 
+                (shop.description || '').toLowerCase().includes(q) ||
+                shop.category.toLowerCase().includes(q)
+            );
+        }
+
+        // 6. Sorting
+        // Sort by distance if map center is available
+        if (center) {
+            result.sort((a, b) => {
+                const distA = Math.pow(a.lat - center[0], 2) + Math.pow(a.lng - center[1], 2);
+                const distB = Math.pow(b.lat - center[0], 2) + Math.pow(b.lng - center[1], 2);
+                return distA - distB;
             });
         }
 
         return result;
     }
+
 
     function initMap() {
         if (mapRenderer) return;
@@ -1024,136 +1152,8 @@ import '../styles/global.css';
         
         // Pass null for bounds to keep all markers visible on the map
         const filtered = getFilteredShops(currentFilter, allShops, visitedShops, null, null, currentLocationFilter, currentSearchQuery);
-        mapRenderer.updateMarkers(filtered, visitedShops);
-    }
-
-    function fetchLeaderboard() {
-        // Leaderboard data starts empty, will be populated as users interact
-        leaderboardData = [];
-        renderLeaderboard();
-    }
-
-    function renderLeaderboard() {
-        const tbody = document.getElementById('leaderboard-body');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-
-        let currentUser = {
-            rank: 0,
-            name: userName + ' (我)',
-            visited_count: visitedShops.length,
-            title: document.getElementById('level-text')?.innerText || '新手上路',
-            isUser: true
-        };
-
-        let combined = leaderboardData.map(d => ({
-            ...d,
-            visited_count: d.visited_count || 0
-        }));
-
-        combined.push(currentUser);
-        combined.sort((a, b) => b.visited_count - a.visited_count);
-
-        let userRank = 0;
-        combined.forEach((item, index) => {
-            const rank = index + 1;
-            const isMe = item.isUser === true;
-            if (isMe) userRank = rank;
-
-            const tr = document.createElement('tr');
-            if (isMe) tr.className = 'bg-primary/10';
-
-            let rankBadge = `#${rank}`;
-            if (rank === 1) rankBadge = '🥇';
-            if (rank === 2) rankBadge = '🥈';
-            if (rank === 3) rankBadge = '🥉';
-
-            tr.innerHTML = `
-                <td class="font-bold">${rankBadge}</td>
-                <td>${item.name}</td>
-                <td>${item.visited_count}</td>
-                <td><span class="badge badge-sm">${item.title}</span></td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        const userRankInfo = document.getElementById('user-rank-info');
-        if (userRankInfo) userRankInfo.innerText = `你的目前排名：第 ${userRank} 名`;
-
-        const shopTbody = document.getElementById('shop-leaderboard-body');
-        if (shopTbody) {
-            shopTbody.innerHTML = '';
-            let sortedShops = [...allShops].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-            let topShops = sortedShops.slice(0, 5);
-
-            topShops.forEach((shop, index) => {
-                const rank = index + 1;
-                const tr = document.createElement('tr');
-                let rankBadge = `#${rank}`;
-            if (rank === 1) rankBadge = '🥇';
-            if (rank === 2) rankBadge = '🥈';
-            if (rank === 3) rankBadge = '🥉';
-
-            tr.innerHTML = `
-                <td class="font-bold">${rankBadge}</td>
-                <td>${shop.name}</td>
-                <td><span class="badge badge-outline badge-sm">${shop.category}</span></td>
-                <td>🔥 ${shop.popularity || 0}</td>
-            `;
-            shopTbody.appendChild(tr);
-        });
-    }
-
-        // Comparison table
-        const compTbody = document.getElementById('comparison-body');
-        if (compTbody) {
-            compTbody.innerHTML = '';
-
-            allShops.forEach(shop => {
-                const isVisited = visitedShops.includes(shop.id);
-                const visitors = shop.visitors || [];
-
-                const tr = document.createElement('tr');
-                if (isVisited) tr.className = 'bg-success/10';
-
-                let tagsHtml = visitors.length > 0
-                    ? visitors.map(v => `<span class="badge badge-ghost badge-sm mr-1">${v.trim()}</span>`).join('')
-                    : '<span class="text-base-content/40 text-sm">尚無資料</span>';
-
-                tr.innerHTML = `
-                    <td>${shop.name}</td>
-                    <td><span class="badge badge-outline badge-sm">${shop.category}</span></td>
-                    <td>${isVisited ? '<span class="text-success">✅ 已攻略</span>' : '<span class="text-base-content/40">⬜ 未攻略</span>'}</td>
-                    <td>${tagsHtml}</td>
-                `;
-                compTbody.appendChild(tr);
-            });
-        }
-    }
-
-    window.switchTab = function(tabName: string) {
-        document.getElementById('tab-passport')?.classList.remove('tab-active');
-        document.getElementById('tab-leaderboard')?.classList.remove('tab-active');
-        document.getElementById('tab-progress')?.classList.remove('tab-active');
-
-        if (tabName === 'passport') {
-            document.getElementById('tab-passport')?.classList.add('tab-active');
-            document.getElementById('passport-view')?.classList.remove('hidden');
-            document.getElementById('leaderboard-view')?.classList.add('hidden');
-            document.getElementById('progress-view')?.classList.add('hidden');
-            if (mapRenderer) mapRenderer.invalidateSize();
-        } else if (tabName === 'progress') {
-            document.getElementById('tab-progress')?.classList.add('tab-active');
-            document.getElementById('passport-view')?.classList.add('hidden');
-            document.getElementById('leaderboard-view')?.classList.add('hidden');
-            document.getElementById('progress-view')?.classList.remove('hidden');
-        } else {
-            document.getElementById('tab-leaderboard')?.classList.add('tab-active');
-            document.getElementById('passport-view')?.classList.add('hidden');
-            document.getElementById('leaderboard-view')?.classList.remove('hidden');
-            document.getElementById('progress-view')?.classList.add('hidden');
-            renderLeaderboard();
-        }
+        // Pass statusMap to updateMarkers
+        mapRenderer.updateMarkers(filtered, statusMap);
     }
 
     window.updateUserName = function() {
@@ -1161,12 +1161,11 @@ import '../styles/global.css';
         if (newName && newName.trim() !== '') {
             userName = newName.trim();
             saveUserName(userName);
-            renderLeaderboard();
         }
     }
 
     window.exportData = function() {
-        const data = localStorage.getItem('visited_shops') || '[]';
+        const data = JSON.stringify(statusMap);
         prompt("請複製以下代碼，在另一支手機匯入：", data);
     }
 
@@ -1176,18 +1175,26 @@ import '../styles/global.css';
             try {
                 const parsed = JSON.parse(data);
                 if(Array.isArray(parsed)) {
-                    // Logic was to persist, which effectively is handled by our addVisitedShop/saveVisitedShop 
-                    // but we need to bulk replace. The user implementation was replacing the entire array.
-                    // We don't have a bulk set function exposed, let me quickly fix inline or add to util? 
-                    // Actually, for importData we should probably add a `setVisitedShops` to util or just direct usage here is technically 'storage' logic 
-                    // but let's stick to using the utility. Wait, the utility `saveVisitedShops` IS exposed.
-                    visitedShops = parsed;
-                    saveVisitedShops(visitedShops);
+                    // Legacy visited list migration
+                    parsed.forEach(id => {
+                        if (typeof id === 'string') setShopStatus(id, 'visited');
+                    });
+                    alert('匯入成功 (已將舊版資料轉換為新版)');
+                    location.reload();
+                } else if (typeof parsed === 'object' && parsed !== null) {
+                    // New status map
+                    Object.entries(parsed).forEach(([id, status]) => {
+                         if (['want', 'visited', 'like', 'dislike'].includes(status as string)) {
+                             setShopStatus(id, status as ShopStatus);
+                         }
+                    });
+                    alert('匯入成功');
                     location.reload();
                 } else {
                     alert('格式錯誤');
                 }
             } catch (e) {
+                console.error(e);
                 alert('代碼無效');
             }
         }
@@ -1235,6 +1242,8 @@ import '../styles/global.css';
             }
         );
     }
+    window.renderShops = renderShops;
+    window.updateMapMarkers = updateMapMarkers;
 </script>
 
 </body>

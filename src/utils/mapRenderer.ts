@@ -49,8 +49,7 @@ export class MapRenderer {
         this.elementId = elementId;
     }
 
-    private defaultIcon: any;
-    private visitedIcon: any;
+    private icons: Record<string, any> = {};
 
     init(center: [number, number], zoom: number): void {
         if (this.map) return;
@@ -66,7 +65,7 @@ export class MapRenderer {
             maxZoom: 20
         }).addTo(this.map);
 
-        // Define icons once
+        // Define icons
         const shadowUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png';
         const shadowOptions = {
             shadowUrl: shadowUrl,
@@ -76,15 +75,18 @@ export class MapRenderer {
             shadowSize: [41, 41]
         };
 
-        this.defaultIcon = new L.Icon({
+        const createIcon = (color: string) => new L.Icon({
             ...shadowOptions,
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
         });
 
-        this.visitedIcon = new L.Icon({
-            ...shadowOptions,
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-        });
+        this.icons = {
+            none: createIcon('blue'),
+            want: createIcon('violet'), // Pink-ish
+            visited: createIcon('green'),
+            like: createIcon('red'),
+            dislike: createIcon('black')
+        };
 
         if (this.map) {
             this.map.on('moveend', () => {
@@ -138,12 +140,18 @@ export class MapRenderer {
         });
     }
 
-    private createPopupContent(name: string, category: string, isVisited: boolean): string {
-        return `<b>${name}</b><br>${category}<br>${isVisited ? '✅ 已踩點' : '⬜ 未踩點'}`;
+    private createPopupContent(name: string, category: string, status: string): string {
+        let statusText = '⬜ 未踩點';
+        if (status === 'visited') statusText = '✅ 已踩點';
+        if (status === 'like') statusText = '❤ 喜歡';
+        if (status === 'dislike') statusText = '🖤 不喜歡';
+        if (status === 'want') statusText = '💖 想去';
+        
+        return `<b>${name}</b><br>${category}<br>${statusText}`;
     }
 
-    updateMarkers(shops: any[], visitedShops: string[]): void {
-        if (!this.map || !this.defaultIcon || !this.visitedIcon) return;
+    updateMarkers(shops: any[], statusMap: Record<string, string>): void {
+        if (!this.map || Object.keys(this.icons).length === 0) return;
         
         const mapInstance = this.map;
         const newShopIds = new Set(shops.map(s => s.id));
@@ -159,23 +167,23 @@ export class MapRenderer {
         // 2. Add or update markers
         shops.forEach(shop => {
             if (shop.lat && shop.lng) {
-                const isVisited = visitedShops.includes(shop.id);
+                const status = statusMap[shop.id] || 'none';
                 // Handle both string and number types safely
                 const lat = typeof shop.lat === 'number' ? shop.lat : parseFloat(shop.lat);
                 const lng = typeof shop.lng === 'number' ? shop.lng : parseFloat(shop.lng);
 
-                const targetIcon = isVisited ? this.visitedIcon : this.defaultIcon;
+                const targetIcon = this.icons[status] || this.icons['none'];
 
                 if (!isNaN(lat) && !isNaN(lng)) {
                     if (this.markers.has(shop.id)) {
                         // Update existing marker
                         const marker = this.markers.get(shop.id)!;
-                        (marker as any).shopId = shop.id; // Ensure ID is attached
+                        (marker as any).shopId = shop.id; 
                         
                         // Check if icon needs update
                         if ((marker as any).options.icon !== targetIcon) {
                            (marker as any).setIcon(targetIcon);
-                           marker.bindPopup(this.createPopupContent(shop.name, shop.category, isVisited));
+                           marker.bindPopup(this.createPopupContent(shop.name, shop.category, status));
                         }
                     } else {
                         // Create new marker
@@ -183,9 +191,9 @@ export class MapRenderer {
                             icon: targetIcon
                         })
                             .addTo(mapInstance)
-                            .bindPopup(this.createPopupContent(shop.name, shop.category, isVisited));
+                            .bindPopup(this.createPopupContent(shop.name, shop.category, status));
                         
-                        (marker as any).shopId = shop.id; // Attach ID
+                        (marker as any).shopId = shop.id; 
                         this.markers.set(shop.id, marker);
                     }
                 }
