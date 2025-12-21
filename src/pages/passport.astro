@@ -77,8 +77,17 @@ import '../styles/global.css';
             </button>
         </div>
         
-        <!-- Category Filters -->
-        <div id="filter-categories" class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-1">
+        <!-- Mode Buttons -->
+         <div class="flex gap-2 flex-1 overflow-x-auto scrollbar-hide items-center">
+            <button class="btn btn-sm btn-primary whitespace-nowrap" id="btn-mode-all" onclick="setFilter('all', this)">全部</button>
+            <button class="btn btn-sm btn-ghost whitespace-nowrap" id="btn-mode-recommend" onclick="setFilter('recommend', this)">推薦</button>
+            <div class="divider divider-horizontal mx-0"></div>
+            <button class="btn btn-sm btn-ghost gap-1 whitespace-nowrap" onclick="openCategoryDialog()">
+                類別篩選
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -212,6 +221,32 @@ import '../styles/global.css';
     </form>
 </dialog>
 
+<!-- Category Dialog -->
+<dialog id="category-dialog" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg">選擇顯示類別</h3>
+            <div class="flex gap-2">
+                <button class="btn btn-xs btn-ghost" onclick="toggleAllCategories(true)">全選</button>
+                <button class="btn btn-xs btn-ghost" onclick="toggleAllCategories(false)">清空</button>
+            </div>
+        </div>
+        
+        <div id="category-list" class="grid grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+            <!-- Dynamic Content -->
+        </div>
+
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn btn-primary" onclick="renderShops(); updateMapMarkers();">確定</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
 <!-- Search Dialog -->
 <dialog id="search-dialog" class="modal modal-bottom sm:modal-middle">
     <div class="modal-box">
@@ -270,6 +305,9 @@ import '../styles/global.css';
             updateUserName: () => void;
             renderShops: () => void;
             updateMapMarkers: () => void;
+            openCategoryDialog: () => void;
+            toggleCategoryFilter: (cat: string) => void;
+            toggleAllCategories: (select: boolean) => void;
             setLocationFilter: (location: string) => void;
             setFilter: (category: string, btnElement:  HTMLElement | null) => void;
             showVisited: () => void;
@@ -323,7 +361,8 @@ import '../styles/global.css';
     let mapRenderer: MapRenderer | null = null;
     let currentBounds: MapBounds | null = null;
     let selectedShopId: string | null = null;
-    let visibleStatuses = new Set<string>(['none', 'want', 'visited', 'like']); // Default: Dislike hidden
+    let visibleStatuses = new Set<string>(['none', 'want', 'visited', 'like']);
+    let selectedCategories = new Set<string>(); // If empty, effectively all (init in renderFilters) // Default: Dislike hidden
 
     // Function to toggle status visibility
     window.toggleStatusFilter = function(status: string) {
@@ -411,9 +450,12 @@ import '../styles/global.css';
     function renderFilters() {
         // Extract unique locations
         const locations = new Set<string>();
+        const uniqueCategories = new Set<string>();
+        
         allShops.forEach(s => {
             if (s.county) locations.add(s.county);
             if (s.city) locations.add(s.city);
+            if (s.category) uniqueCategories.add(s.category);
         });
         const sortedLocations = Array.from(locations).sort();
 
@@ -427,32 +469,88 @@ import '../styles/global.css';
             locationSelect.innerHTML = options;
         }
 
-        // Render Category Buttons
-        // Remove '推薦' from the main filter list
-        const categories = ['全部', '熱門', ...new Set(allShops.map(s => s.category))];
-        const container = document.getElementById('filter-categories');
-        if (!container) return; // Null check
-
-        let html = '';
-        categories.forEach(cat => {
-            let label = cat;
-            let val = cat;
-
-            if (cat === '全部') {
-                val = 'all';
-            } else if (cat === '熱門') {
-                val = 'hot';
-                label = '🔥 熱門';
-            }
-
-            html += `<button class="btn btn-sm ${val === currentFilter ? 'btn-primary' : 'btn-ghost'} whitespace-nowrap"
-                             onclick="setFilter('${val}', this)">${label}</button>`;
+        // Render Category Dialog Content
+        const categoryOrder = ['美食', '咖啡', '甜點', '冰品', '飲料', '酒吧', '景點', '藝文', '書店', '購物', '生活', '住宿', '寵物', '美容', '醫療', '運動', '其他'];
+        const categories = Array.from(uniqueCategories).sort((a, b) => {
+             const idxA = categoryOrder.indexOf(a);
+             const idxB = categoryOrder.indexOf(b);
+             if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+             if (idxA !== -1) return -1;
+             if (idxB !== -1) return 1;
+             return a.localeCompare(b);
         });
+        
+        // Initialize selectedCategories with ALL if it's the first run (size 0)
+        // Wait, if user deselected all, size is 0. 
+        // We need a flag or check if it's initialized? 
+        // Actually, let's logic: "If empty, select all on init".
+        // But re-render shouldn't reset.
+        // We can just add them if not present? No.
+        // Let's assume on first load (when this runs), we fill it.
+        // A simple way: check if this is first run.
+        if (selectedCategories.size === 0) {
+             categories.forEach(c => selectedCategories.add(c));
+        }
 
-        // Add Disliked category explicitly at the end
-        html += `<button class="btn btn-sm ${currentFilter === 'disliked' ? 'btn-primary' : 'btn-ghost'} whitespace-nowrap"
-                         onclick="setFilter('disliked', this)">💔 不喜歡</button>`;
-        container.innerHTML = html;
+        const container = document.getElementById('category-list');
+        if (container) {
+            let html = '';
+            // Add "Hot" as a pseudo-category? 
+            // The prompt says "First layer leave All, Recommend".
+            // "Hot" was a category button. Users might want "Hot" filter.
+            // But "Hot" is property based.
+            // Let's stick to true categories for the dialog.
+            
+            categories.forEach(cat => {
+                const isChecked = selectedCategories.has(cat);
+                html += `
+                    <label class="label cursor-pointer justify-start gap-2 border border-base-200 rounded-lg p-3 hover:bg-base-200 transition-colors">
+                        <input type="checkbox" class="checkbox checkbox-sm checkbox-primary" 
+                               ${isChecked ? 'checked' : ''} 
+                               onchange="toggleCategoryFilter('${cat}')" />
+                        <span class="label-text">${cat}</span>
+                    </label>
+                `;
+            });
+            container.innerHTML = html;
+        }
+    }
+    
+    // Category Dialog Functions
+    window.openCategoryDialog = function() {
+        const dialog = document.getElementById('category-dialog') as HTMLDialogElement;
+        if (dialog) dialog.showModal();
+    }
+    
+    window.toggleCategoryFilter = function(cat: string) {
+        if (selectedCategories.has(cat)) {
+            selectedCategories.delete(cat);
+        } else {
+            selectedCategories.add(cat);
+        }
+        // UI is checkbox, so it updates itself visually.
+        // Logic updates Set. "OK" button will render.
+    }
+    
+    window.toggleAllCategories = function(select: boolean) {
+        if (select) {
+            // Select All
+            // We need all categories list.
+            const checkboxes = document.querySelectorAll('#category-list input[type="checkbox"]');
+            checkboxes.forEach((cb: any) => {
+                cb.checked = true;
+                // Get label text? Or simpler:
+                // We'd rather iterate known categories.
+                // But simplified: 
+            });
+            // Re-fill state
+             allShops.forEach(s => selectedCategories.add(s.category));
+        } else {
+            // Clear All
+            const checkboxes = document.querySelectorAll('#category-list input[type="checkbox"]');
+            checkboxes.forEach((cb: any) => cb.checked = false);
+            selectedCategories.clear();
+        }
     }
 
     window.setLocationFilter = function(location: string) {
@@ -1079,9 +1177,12 @@ import '../styles/global.css';
             });
         }
 
-        // 2. Category Filter
-        if (filterType !== 'all' && filterType !== 'recommend') {
-            result = result.filter(shop => shop.category === filterType);
+        // 2. Category Filter (Multi-select)
+        if (filterType === 'all') {
+            // Filter by selectedCategories if in 'all' mode.
+            // Note: selectedCategories is initialized to all categories in renderFilters.
+            // If empty, it means user deselected all, so result should be empty.
+            result = result.filter(shop => selectedCategories.has(shop.category));
         }
         
         // 3. Location Filter

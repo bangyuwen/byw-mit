@@ -13,16 +13,19 @@ export class FetchError extends Error {
 // Fetch the data using standard fetch API
 export async function fetchAllShops(): Promise<GluttonyData> {
     try {
-        const [gluttonyRes, islandRes] = await Promise.all([
+        const [gluttonyRes, islandRes, supportRes] = await Promise.all([
             fetch('/byw-mit/gluttony.json'),
-            fetch('/byw-mit/island.json')
+            fetch('/byw-mit/island.json'),
+            fetch('/byw-mit/support.json')
         ]);
 
         if (!gluttonyRes.ok) throw new Error(`Failed to fetch gluttony data: ${gluttonyRes.statusText}`);
         if (!islandRes.ok) console.warn(`Failed to fetch island data: ${islandRes.statusText}`);
+        if (!supportRes.ok) console.warn(`Failed to fetch support data: ${supportRes.statusText}`);
 
         const gluttonyData = (await gluttonyRes.json()) as GluttonyData;
         const islandData = islandRes.ok ? (await islandRes.json()) as GluttonyData : { title: "島國", places: [] };
+        const supportData = supportRes.ok ? (await supportRes.json()) as GluttonyData : { title: "支持", places: [] };
 
         const placeMap = new Map<string, Place>();
     
@@ -41,6 +44,7 @@ export async function fetchAllShops(): Promise<GluttonyData> {
 
         addPlaces(gluttonyData.places, gluttonyData.title);
         addPlaces(islandData.places, islandData.title);
+        addPlaces(supportData.places, supportData.title);
 
         return {
             title: gluttonyData.title,
