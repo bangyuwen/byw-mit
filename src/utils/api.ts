@@ -31,16 +31,39 @@ export async function fetchAllShops(): Promise<GluttonyData> {
         const babyData = babyRes.ok ? (await babyRes.json()) as GluttonyData : { title: "寶寶", places: [] };
 
         const placeMap = new Map<string, Place>();
+        const coordMap = new Map<string, string>(); // "lat,lng" -> place key (name or ID)
     
         // Helper to add/merge places (later sources override earlier ones)
         const addPlaces = (places: Place[], sourceTitle: string) => {
             places.forEach(p => {
-                const key = p.place_id || p.name;
-                const placeWithSource = { ...p, source: sourceTitle };
+                let key = p.place_id || p.name;
+                
+                // Try to find existing place by coordinates if available
+                if (p.lat && p.lng) {
+                    // Use 4 decimal places for approx 11m precision, sufficient for shop deduplication
+                    const coordKey = `${Number(p.lat).toFixed(4)},${Number(p.lng).toFixed(4)}`;
+                    if (coordMap.has(coordKey)) {
+                        key = coordMap.get(coordKey)!;
+                    } else {
+                        coordMap.set(coordKey, key);
+                    }
+                }
+
                 if (placeMap.has(key)) {
-                    placeMap.set(key, { ...placeMap.get(key)!, ...placeWithSource });
+                    const existingPlace = placeMap.get(key)!;
+                    
+                    // Check if source already included to avoid "A · A"
+                    const currentSources = existingPlace.source ? existingPlace.source.split(' · ') : [];
+                    let newSource = existingPlace.source;
+                    
+                    if (!currentSources.includes(sourceTitle)) {
+                        newSource = `${existingPlace.source} · ${sourceTitle}`;
+                    }
+                    
+                    // Merge properties. 
+                    placeMap.set(key, { ...existingPlace, ...p, source: newSource });
                 } else {
-                    placeMap.set(key, placeWithSource);
+                    placeMap.set(key, { ...p, source: sourceTitle });
                 }
             });
         };
