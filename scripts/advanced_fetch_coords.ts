@@ -84,8 +84,8 @@ async function main() {
         for (let i = 0; i < places.length; i++) {
             const place = places[i];
             
-            // Skip if both lat and description are present and city is known
-            if (place.lat !== 0 && place.description && place.description !== "" && place.city !== "Unknown City") continue;
+            // Skip if lat exists and description is present and city is known
+            if (place.lat && place.lat !== 0 && place.description && place.description !== "" && place.city !== "Unknown City") continue;
             
             console.log(`[${i+1}/${places.length}] Fetching ${place.name}...`);
             
