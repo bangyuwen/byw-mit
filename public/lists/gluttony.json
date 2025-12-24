@@ -1347,11 +1347,11 @@
     {
       "name": "heaven徒手撥筋",
       "category": "其他",
-      "place_id": "heaven_tushou_bojin_manual",
+      "place_id": "0x346835327f971909:0x350791d0363f948a",
       "description": "專業徒手撥筋服務",
-      "url": "https://www.google.com/maps/search/?api=1&query=heaven徒手撥筋+新竹",
-      "lat": null,
-      "lng": null,
+      "url": "https://www.google.com/maps/place/Heaven%E5%BE%92%E6%89%8B%E6%92%A5%E7%AD%8B/data=!4m2!3m1!1s0x346835327f971909:0x350791d0363f948a",
+      "lat": 24.809309,
+      "lng": 120.940961,
       "city": "新竹市",
       "popular_product": "沒有"
     }
