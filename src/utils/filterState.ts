@@ -3,6 +3,7 @@ const STORAGE_KEY = 'passport_filter_state';
 export interface FilterState {
   mode: string;
   selectedCategories: string[];
+  selectedSources: string[];
   locationFilter: string;
   searchQuery: string;
   visibleStatuses: string[];

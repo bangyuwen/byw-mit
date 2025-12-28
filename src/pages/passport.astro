@@ -196,7 +196,8 @@ import '../styles/global.css';
 
 <!-- Category Dialog -->
 <dialog id="category-dialog" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box">
+    <div class="modal-box max-w-2xl">
+        <!-- Category Filter Section -->
         <div class="flex justify-between items-center mb-4">
             <h3 class="font-bold text-lg">選擇顯示類別</h3>
             <div class="flex gap-2">
@@ -204,8 +205,22 @@ import '../styles/global.css';
                 <button class="btn btn-xs btn-ghost" onclick="toggleAllCategories(false)">清空</button>
             </div>
         </div>
-        
-        <div id="category-list" class="grid grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+
+        <div id="category-list" class="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto mb-6">
+            <!-- Dynamic Content -->
+        </div>
+
+        <!-- Source Filter Section -->
+        <div class="divider"></div>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg">選擇顯示來源</h3>
+            <div class="flex gap-2">
+                <button class="btn btn-xs btn-ghost" onclick="toggleAllSources(true)">全選</button>
+                <button class="btn btn-xs btn-ghost" onclick="toggleAllSources(false)">清空</button>
+            </div>
+        </div>
+
+        <div id="source-list" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
             <!-- Dynamic Content -->
         </div>
 
@@ -282,7 +297,9 @@ import '../styles/global.css';
             updateMapMarkers: () => void;
             openCategoryDialog: () => void;
             toggleCategoryFilter: (cat: string) => void;
+            toggleSourceFilter: (src: string) => void;
             toggleAllCategories: (select: boolean) => void;
+            toggleAllSources: (select: boolean) => void;
             setLocationFilter: (location: string) => void;
             setFilter: (category: string, btnElement:  HTMLElement | null) => void;
             showVisited: () => void;
@@ -323,6 +340,20 @@ import '../styles/global.css';
     let statusMap = getShopStatusMap();
     let visitedShops: string[] = []; // Computed from statusMap
     // let favoriteShops: string[] = []; // Deprecated, use statusMap check
+
+    // Helper function to parse shop sources
+    function parseShopSources(source: string | undefined): string[] {
+        return source ? source.split(' · ').map(s => s.trim()) : [];
+    }
+
+    // Helper function to get all unique sources
+    function getAllUniqueSources(): Set<string> {
+        const sources = new Set<string>();
+        allShops.forEach(s => {
+            parseShopSources(s.source).forEach(src => sources.add(src));
+        });
+        return sources;
+    }
     
     // Helper to refresh derived lists if needed, but we mostly use statusMap now
     function refreshDerivedData() {
@@ -341,12 +372,14 @@ import '../styles/global.css';
     let selectedShopId: string | null = null;
     let visibleStatuses = new Set<string>(['none', 'want', 'visited', 'like']);
     let selectedCategories = new Set<string>(); // If empty, effectively all (init in renderFilters) // Default: Dislike hidden
+    let selectedSources = new Set<string>(); // If empty, show all sources (init in renderFilters)
 
     // Helper function to save current filter state
     window.persistFilterState = function() {
         const state: FilterState = {
             mode: currentFilter,
             selectedCategories: Array.from(selectedCategories),
+            selectedSources: Array.from(selectedSources),
             locationFilter: currentLocationFilter,
             searchQuery: currentSearchQuery,
             visibleStatuses: Array.from(visibleStatuses)
@@ -380,6 +413,7 @@ import '../styles/global.css';
             currentLocationFilter = savedState.locationFilter || 'all';
             currentSearchQuery = savedState.searchQuery || '';
             selectedCategories = new Set(savedState.selectedCategories || []);
+            selectedSources = new Set(savedState.selectedSources || []);
             visibleStatuses = new Set(savedState.visibleStatuses || ['none', 'want', 'visited', 'like']);
         }
 
@@ -485,19 +519,14 @@ import '../styles/global.css';
         }
     }
 
-    function renderFilters() {
-        // Extract unique locations
+    function renderLocationFilter() {
         const locations = new Set<string>();
-        const uniqueCategories = new Set<string>();
-        
         allShops.forEach(s => {
             if (s.county) locations.add(s.county);
             if (s.city) locations.add(s.city);
-            if (s.category) uniqueCategories.add(s.category);
         });
         const sortedLocations = Array.from(locations).sort();
 
-        // Render Location Select
         const locationSelect = document.getElementById('location-filter');
         if (locationSelect) {
             let options = '<option value="all">全台灣</option>';
@@ -506,8 +535,14 @@ import '../styles/global.css';
             });
             locationSelect.innerHTML = options;
         }
+    }
 
-        // Render Category Dialog Content
+    function renderCategoryFilter() {
+        const uniqueCategories = new Set<string>();
+        allShops.forEach(s => {
+            if (s.category) uniqueCategories.add(s.category);
+        });
+
         const categoryOrder = ['美食', '咖啡', '甜點', '冰品', '飲料', '酒吧', '景點', '藝文', '書店', '購物', '生活', '住宿', '寵物', '美容', '醫療', '運動', '其他'];
         const categories = Array.from(uniqueCategories).sort((a, b) => {
              const idxA = categoryOrder.indexOf(a);
@@ -517,15 +552,7 @@ import '../styles/global.css';
              if (idxB !== -1) return 1;
              return a.localeCompare(b);
         });
-        
-        // Initialize selectedCategories with ALL if it's the first run (size 0)
-        // Wait, if user deselected all, size is 0. 
-        // We need a flag or check if it's initialized? 
-        // Actually, let's logic: "If empty, select all on init".
-        // But re-render shouldn't reset.
-        // We can just add them if not present? No.
-        // Let's assume on first load (when this runs), we fill it.
-        // A simple way: check if this is first run.
+
         if (selectedCategories.size === 0) {
              categories.forEach(c => selectedCategories.add(c));
         }
@@ -533,18 +560,12 @@ import '../styles/global.css';
         const container = document.getElementById('category-list');
         if (container) {
             let html = '';
-            // Add "Hot" as a pseudo-category? 
-            // The prompt says "First layer leave All, Recommend".
-            // "Hot" was a category button. Users might want "Hot" filter.
-            // But "Hot" is property based.
-            // Let's stick to true categories for the dialog.
-            
             categories.forEach(cat => {
                 const isChecked = selectedCategories.has(cat);
                 html += `
                     <label class="label cursor-pointer justify-start gap-2 border border-base-200 rounded-lg p-3 hover:bg-base-200 transition-colors">
-                        <input type="checkbox" class="checkbox checkbox-sm checkbox-primary" 
-                               ${isChecked ? 'checked' : ''} 
+                        <input type="checkbox" class="checkbox checkbox-sm checkbox-primary"
+                               ${isChecked ? 'checked' : ''}
                                onchange="toggleCategoryFilter('${cat}')" />
                         <span class="label-text">${cat}</span>
                     </label>
@@ -552,6 +573,38 @@ import '../styles/global.css';
             });
             container.innerHTML = html;
         }
+    }
+
+    function renderSourceFilter() {
+        const uniqueSources = getAllUniqueSources();
+        const sources = Array.from(uniqueSources).sort();
+
+        if (selectedSources.size === 0) {
+             sources.forEach(s => selectedSources.add(s));
+        }
+
+        const sourceContainer = document.getElementById('source-list');
+        if (sourceContainer) {
+            let sourceHtml = '';
+            sources.forEach(src => {
+                const isChecked = selectedSources.has(src);
+                sourceHtml += `
+                    <label class="label cursor-pointer justify-start gap-2 border border-base-200 rounded-lg p-3 hover:bg-base-200 transition-colors">
+                        <input type="checkbox" class="checkbox checkbox-sm checkbox-secondary"
+                               ${isChecked ? 'checked' : ''}
+                               onchange="toggleSourceFilter('${src}')" />
+                        <span class="label-text">${src}</span>
+                    </label>
+                `;
+            });
+            sourceContainer.innerHTML = sourceHtml;
+        }
+    }
+
+    function renderFilters() {
+        renderLocationFilter();
+        renderCategoryFilter();
+        renderSourceFilter();
     }
     
     // Category Dialog Functions
@@ -569,6 +622,14 @@ import '../styles/global.css';
         // UI is checkbox, so it updates itself visually.
         // Logic updates Set. "OK" button will render and save.
     }
+
+    window.toggleSourceFilter = function(src: string) {
+        if (selectedSources.has(src)) {
+            selectedSources.delete(src);
+        } else {
+            selectedSources.add(src);
+        }
+    }
     
     window.toggleAllCategories = function(select: boolean) {
         if (select) {
@@ -579,7 +640,7 @@ import '../styles/global.css';
                 cb.checked = true;
                 // Get label text? Or simpler:
                 // We'd rather iterate known categories.
-                // But simplified: 
+                // But simplified:
             });
             // Re-fill state
              allShops.forEach(s => selectedCategories.add(s.category));
@@ -588,6 +649,18 @@ import '../styles/global.css';
             const checkboxes = document.querySelectorAll('#category-list input[type="checkbox"]');
             checkboxes.forEach((cb: any) => cb.checked = false);
             selectedCategories.clear();
+        }
+    }
+
+    window.toggleAllSources = function(select: boolean) {
+        const checkboxes = document.querySelectorAll('#source-list input[type="checkbox"]');
+
+        if (select) {
+            checkboxes.forEach((cb: any) => cb.checked = true);
+            selectedSources = getAllUniqueSources();
+        } else {
+            checkboxes.forEach((cb: any) => cb.checked = false);
+            selectedSources.clear();
         }
     }
 
@@ -1208,13 +1281,23 @@ import '../styles/global.css';
             // If empty, it means user deselected all, so result should be empty.
             result = result.filter(shop => selectedCategories.has(shop.category));
         }
-        
-        // 3. Location Filter
+
+        // 3. Source Filter (Multi-select)
+        if (selectedSources.size > 0) {
+            result = result.filter(shop => {
+                const shopSources = parseShopSources(shop.source);
+                return shopSources.some(src => selectedSources.has(src));
+            });
+        } else {
+            result = [];
+        }
+
+        // 4. Location Filter
         if (locationFilter !== 'all') {
             result = result.filter(shop => shop.city === locationFilter || shop.county === locationFilter);
         }
 
-        // 4. Map Bounds Filter
+        // 5. Map Bounds Filter
         if (bounds) {
             result = result.filter(shop => {
                 const lat = typeof shop.lat === 'string' ? parseFloat(shop.lat) : shop.lat;
@@ -1225,18 +1308,18 @@ import '../styles/global.css';
                        lng <= bounds.east;
             });
         }
-        
-        // 5. Search Query
+
+        // 6. Search Query
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            result = result.filter(shop => 
-                shop.name.toLowerCase().includes(q) || 
+            result = result.filter(shop =>
+                shop.name.toLowerCase().includes(q) ||
                 (shop.description || '').toLowerCase().includes(q) ||
                 shop.category.toLowerCase().includes(q)
             );
         }
 
-        // 6. Sorting
+        // 7. Sorting
         // Sort by distance if map center is available
         if (center) {
             result.sort((a, b) => {
