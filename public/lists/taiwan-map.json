@@ -1,5 +1,5 @@
 {
-  "title": "派圖",
+  "title": "台派地圖",
   "count": 12,
   "extracted_at": "2025-12-29T09:22:39.000Z",
   "places": [
@@ -38,8 +38,8 @@
     },
     {
       "name": "開飯川食堂 小碧潭店",
-      "url": "https://www.google.com/maps/search/?api=1&query=開飯川食堂",
-      "place_id": "",
+      "url": "https://www.google.com/maps/place/%E9%96%8B%E9%A3%AF%E5%B7%9D%E9%A3%9F%E5%A0%82+%E5%B0%8F%E7%A2%A7%E6%BD%AD%E5%BA%97/@24.9723512,121.5307121,17z/data=!3m1!4b1!4m6!3m5!1s0x3468038b8fd17651:0x99af0c808db7de99!8m2!3d24.9723512!4d121.5307121",
+      "place_id": "0x3468038b8fd17651:0x99af0c808db7de99",
       "description": "位於新北市小碧潭京站的四川料理，提供流口水雞、麻婆燒豆腐等經典川菜。",
       "lat": 24.9723512,
       "lng": 121.5307121,
@@ -49,8 +49,8 @@
     },
     {
       "name": "摩斯漢堡- 興隆店",
-      "url": "https://www.google.com/maps/search/?api=1&query=摩斯漢堡+興隆店",
-      "place_id": "",
+      "url": "https://www.google.com/maps/place/MOS+Burger/@25.000261,121.5556421,17z/data=!3m1!4b1!4m6!3m5!1s0x3442aa13b8c27e23:0xf7e8a6b82a82d1ca!8m2!3d25.000261!4d121.5556421!16s%2Fg%2F1hc1jr0nr?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D",
+      "place_id": "0x3442aa13b8c27e23:0xf7e8a6b82a82d1ca",
       "description": "位於台北市文山區的日式漢堡連鎖店，提供米漢堡、紅茶等速食。",
       "lat": 25.000261,
       "lng": 121.5556421,
@@ -104,8 +104,8 @@
     },
     {
       "name": "黃家粉圓冰",
-      "url": "https://maps.app.goo.gl/kX72E8E62B4Y7Z6Q9",
-      "place_id": "",
+      "url": "https://www.google.com/maps/place/%E9%BB%83%E5%AE%B6%E7%B2%89%E5%9C%93%E5%86%B0/@22.6342924,120.292584,13z/data=!4m10!1m2!2m1!1z6buD5a6257KJ5ZyT5Yaw!3m6!1s0x346e04615bb625d1:0xf078a7e6ac3b345d!8m2!3d22.6342924!4d120.292584!15sCg_pu4PlrrbnsonlnJPlhrBaFSIT6buDIOWutiDnsokg5ZyTIOWGsJIBDmRlc3NlcnRfYnVmZmV0mgEjQ2haRFNVaE5NRzluUzBWSlEwRm5TVU5TZUdKWGEwUm5FQUXgAQD6AQQIABAl!16s%2Fg%2F11b7g196_d?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D",
+      "place_id": "0x346e04615bb625d1:0xf078a7e6ac3b345d",
       "description": "位於高雄市三民區的高CP值冰品店，以只要10元的黑糖粉圓冰聞名。",
       "lat": 22.6342924,
       "lng": 120.292584,
@@ -115,8 +115,8 @@
     },
     {
       "name": "冬粉王",
-      "url": "https://www.google.com/maps/search/?api=1&query=冬粉王+高雄",
-      "place_id": "",
+      "url": "https://www.google.com/maps/place/%E5%86%AC%E7%B2%89%E7%8E%8B/@22.6271961,120.2829129,17z/data=!3m1!4b1!4m6!3m5!1s0x346e047102b7fab5:0xf1e6a11993ea2dd6!8m2!3d22.6271961!4d120.2829129",
+      "place_id": "0x346e047102b7fab5:0xf1e6a11993ea2dd6",
       "description": "位於高雄鹽埕區的50年老店，提供以大骨熬製湯頭的清爽冬粉及新鮮的鴨肉、內臟切盤。",
       "lat": 22.6271961,
       "lng": 120.2829129,
